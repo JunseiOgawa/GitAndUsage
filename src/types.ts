@@ -28,4 +28,9 @@ export interface AppConfig {
   height_ratio: number;
   usage_json_path: string;
   enabled_providers: string[];
+  codex_token?: string;
+  copilot_pat?: string;
+  claude_key?: string;
+  copilot_org?: string; // Optional field for form UI
 }
+

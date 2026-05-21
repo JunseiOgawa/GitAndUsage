@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { AppConfig, GitStatus, UsageSnapshot } from "./types";
 import { GitGraphPanel } from "./GitGraphPanel";
 import { UsagePanel } from "./UsagePanel";
+import { SettingsView } from "./SettingsView";
 
 function App() {
   const [config, setConfig] = useState<AppConfig | null>(null);
@@ -17,105 +18,96 @@ function App() {
   const [usageLoading, setUsageLoading] = useState(true);
   const [usageError, setUsageError] = useState<string | null>(null);
 
-  // 1. Load application configuration on mount
-  useEffect(() => {
-    async function loadConfig() {
-      try {
-        const appConfig = await invoke<AppConfig>("get_app_config");
-        setConfig(appConfig);
-      } catch (err: any) {
-        console.error("Failed to load app config:", err);
-        setConfigError(err?.message || String(err));
-      } finally {
-        setConfigLoading(false);
-      }
+  // Settings modal visibility
+  const [showSettings, setShowSettings] = useState(false);
+
+  // Load application configuration
+  const loadConfig = useCallback(async () => {
+    try {
+      const appConfig = await invoke<AppConfig>("get_app_config");
+      setConfig(appConfig);
+    } catch (err: any) {
+      console.error("Failed to load app config:", err);
+      setConfigError(err?.message || String(err));
+    } finally {
+      setConfigLoading(false);
     }
-    loadConfig();
   }, []);
 
-  // 2. Fetch Git status periodically
+  useEffect(() => {
+    loadConfig();
+  }, [loadConfig]);
+
+  // Fetch functions exposed to allow manual immediate refresh after saving settings
+  const fetchGitStatus = useCallback(async (repoPath: string) => {
+    try {
+      const status = await invoke<GitStatus>("get_git_status", {
+        repoPath,
+      });
+      setGitStatus(status);
+      setGitError(null);
+    } catch (err: any) {
+      console.error("Failed to get git status:", err);
+      setGitError(err?.message || String(err));
+    } finally {
+      setGitLoading(false);
+    }
+  }, []);
+
+  const fetchUsageSnapshots = useCallback(async (usageJsonPath: string, enabledProviders: string[]) => {
+    try {
+      const snapshots = await invoke<UsageSnapshot[]>("get_usage_snapshot", {
+        jsonPath: usageJsonPath,
+      });
+      
+      const filtered = (enabledProviders && enabledProviders.length > 0)
+        ? snapshots.filter(s => enabledProviders.includes(s.provider))
+        : snapshots;
+
+      setUsageSnapshots(filtered);
+      setUsageError(null);
+    } catch (err: any) {
+      console.error("Failed to get usage snapshot:", err);
+      setUsageError(err?.message || String(err));
+    } finally {
+      setUsageLoading(false);
+    }
+  }, []);
+
+  // Sync polling when config is loaded
   useEffect(() => {
     if (!config) return;
 
-    let isMounted = true;
+    // Initial load
+    fetchGitStatus(config.repo_path);
+    fetchUsageSnapshots(config.usage_json_path, config.enabled_providers);
 
-    async function fetchGitStatus() {
-      try {
-        const status = await invoke<GitStatus>("get_git_status", {
-          repoPath: config.repo_path,
-        });
-        if (isMounted) {
-          setGitStatus(status);
-          setGitError(null);
-        }
-      } catch (err: any) {
-        console.error("Failed to get git status:", err);
-        if (isMounted) {
-          setGitError(err?.message || String(err));
-        }
-      } finally {
-        if (isMounted) {
-          setGitLoading(false);
-        }
-      }
-    }
+    // Setup polling
+    const gitInterval = setInterval(() => {
+      fetchGitStatus(config.repo_path);
+    }, 10000);
 
-    // Initial fetch
-    fetchGitStatus();
-
-    // 10 seconds polling
-    const interval = setInterval(fetchGitStatus, 10000);
+    const usageInterval = setInterval(() => {
+      fetchUsageSnapshots(config.usage_json_path, config.enabled_providers);
+    }, 30000);
 
     return () => {
-      isMounted = false;
-      clearInterval(interval);
+      clearInterval(gitInterval);
+      clearInterval(usageInterval);
     };
-  }, [config]);
+  }, [config, fetchGitStatus, fetchUsageSnapshots]);
 
-  // 3. Fetch Usage snapshots periodically
-  useEffect(() => {
-    if (!config) return;
-
-    let isMounted = true;
-
-    async function fetchUsageSnapshots() {
-      try {
-        const snapshots = await invoke<UsageSnapshot[]>("get_usage_snapshot", {
-          jsonPath: config.usage_json_path,
-        });
-        
-        // Filter by enabled_providers if list is present and not empty
-        const filtered = (config.enabled_providers && config.enabled_providers.length > 0)
-          ? snapshots.filter(s => config.enabled_providers.includes(s.provider))
-          : snapshots;
-
-        if (isMounted) {
-          setUsageSnapshots(filtered);
-          setUsageError(null);
-        }
-      } catch (err: any) {
-        console.error("Failed to get usage snapshot:", err);
-        if (isMounted) {
-          setUsageError(err?.message || String(err));
-        }
-      } finally {
-        if (isMounted) {
-          setUsageLoading(false);
-        }
-      }
-    }
-
-    // Initial fetch
-    fetchUsageSnapshots();
-
-    // 30 seconds polling
-    const interval = setInterval(fetchUsageSnapshots, 30000);
-
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
-  }, [config]);
+  // Handle successful save in SettingsView
+  const handleSaveSettings = (newConfig: AppConfig) => {
+    setConfig(newConfig);
+    setShowSettings(false);
+    
+    // Immediately reload git and usage snapshots
+    setGitLoading(true);
+    setUsageLoading(true);
+    fetchGitStatus(newConfig.repo_path);
+    fetchUsageSnapshots(newConfig.usage_json_path, newConfig.enabled_providers);
+  };
 
   // Premium loading screen for initial app configuration load
   if (configLoading) {
@@ -151,6 +143,19 @@ function App() {
 
   return (
     <main className="app-container">
+      {/* Floating Gear Settings Toggle */}
+      <button 
+        className="settings-toggle-floating-btn"
+        onClick={() => setShowSettings(true)}
+        title="Open Settings"
+        aria-label="Open Settings"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+      </button>
+
       <GitGraphPanel 
         status={gitStatus} 
         loading={gitLoading} 
@@ -161,6 +166,14 @@ function App() {
         loading={usageLoading} 
         error={usageError} 
       />
+
+      {showSettings && config && (
+        <SettingsView 
+          config={config} 
+          onClose={() => setShowSettings(false)}
+          onSave={handleSaveSettings}
+        />
+      )}
     </main>
   );
 }

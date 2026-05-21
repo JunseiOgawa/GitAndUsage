@@ -9,6 +9,9 @@ pub struct AppConfig {
     pub height_ratio: f64,
     pub usage_json_path: String,
     pub enabled_providers: Vec<String>,
+    pub codex_token: Option<String>,
+    pub copilot_pat: Option<String>,
+    pub claude_key: Option<String>,
 }
 
 impl Default for AppConfig {
@@ -26,6 +29,9 @@ impl Default for AppConfig {
                 "copilot".to_string(),
                 "claude".to_string(),
             ],
+            codex_token: None,
+            copilot_pat: None,
+            claude_key: None,
         }
     }
 }

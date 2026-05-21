@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { UsageSnapshot } from "./types";
 
 interface UsagePanelProps {
@@ -8,6 +8,9 @@ interface UsagePanelProps {
 }
 
 export const UsagePanel: React.FC<UsagePanelProps> = ({ snapshots, loading, error }) => {
+  const [activeTab, setActiveTab] = useState<string>("codex");
+
+  // Keep activeTab in sync with available snapshots if necessary, or just default to "codex"
   const formatTime = (isoString: string) => {
     try {
       const date = new Date(isoString);
@@ -22,9 +25,20 @@ export const UsagePanel: React.FC<UsagePanelProps> = ({ snapshots, loading, erro
     return Math.min(100, Math.round((used / limit) * 100));
   };
 
+  // Find the snapshot for the active tab
+  const activeSnapshot = snapshots.find(
+    (s) => s.provider.toLowerCase() === activeTab.toLowerCase()
+  );
+
+  const tabs = [
+    { id: "codex", label: "Codex" },
+    { id: "copilot", label: "Copilot" },
+    { id: "claude", label: "Claude" }
+  ];
+
   return (
     <div className="right-panel glass-panel">
-      <div className="panel-header">
+      <div className="panel-header" style={{ flexDirection: "column", alignItems: "stretch", gap: "12px" }}>
         <div className="panel-title">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--accent-color)" }}>
             <line x1="12" y1="1" x2="12" y2="23" />
@@ -32,9 +46,27 @@ export const UsagePanel: React.FC<UsagePanelProps> = ({ snapshots, loading, erro
           </svg>
           Resource Usage
         </div>
+        
+        {/* Stylish Tab Buttons */}
+        <div className="usage-tabs">
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.id;
+            const hasData = snapshots.some(s => s.provider.toLowerCase() === tab.id);
+            return (
+              <button
+                key={tab.id}
+                className={`usage-tab-btn ${isActive ? "active" : ""}`}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                {tab.label}
+                {hasData && <span className="tab-indicator-dot" />}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="panel-content" style={{ padding: "16px" }}>
+      <div className="panel-content" style={{ padding: "16px", display: "flex", flexDirection: "column" }}>
         {loading && snapshots.length === 0 ? (
           <div className="fallback-screen" style={{ height: "80%" }}>
             <div className="spinner"></div>
@@ -52,75 +84,80 @@ export const UsagePanel: React.FC<UsagePanelProps> = ({ snapshots, loading, erro
             <h3 style={{ marginBottom: "8px" }}>Failed to Load Usage</h3>
             <p className="fallback-text">{error}</p>
           </div>
-        ) : snapshots.length === 0 ? (
-          <div className="fallback-screen" style={{ height: "80%" }}>
+        ) : !activeSnapshot ? (
+          <div className="fallback-screen tab-fade-in" key={activeTab} style={{ height: "80%", justifyContent: "center" }}>
             <div className="fallback-icon">
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+                <circle cx="12" cy="12" r="10" />
+                <line x1="8" y1="12" x2="16" y2="12" />
               </svg>
             </div>
-            <h3 style={{ marginBottom: "8px" }}>No Data Available</h3>
-            <p className="fallback-text">Check if the snapshot providers are configured and running.</p>
+            <h4 style={{ marginBottom: "6px", color: "var(--text-primary)" }}>No Data for {activeTab.toUpperCase()}</h4>
+            <p className="fallback-text" style={{ fontSize: "0.8rem" }}>
+              This provider is either disabled or has no usage snapshots recorded.
+            </p>
           </div>
         ) : (
-          <div className="usage-list">
-            {snapshots.map((item) => {
-              const hasLimit = item.limit !== undefined && item.limit !== null && item.limit > 0;
-              const hasUsed = item.used !== undefined && item.used !== null;
-              const percent = getPercentage(item.used, item.limit);
-
-              return (
-                <div key={item.provider} className="usage-card">
-                  <div className="usage-card-header">
-                    <div className="usage-provider-info">
-                      <span className="usage-provider-name">{item.displayName}</span>
-                      <div className="usage-provider-labels">
-                        {item.accountLabel && (
-                          <span className="usage-label">{item.accountLabel}</span>
-                        )}
-                        {item.planLabel && (
-                          <span className="usage-label" style={{ borderColor: "rgba(99, 102, 241, 0.2)", color: "#a5b4fc" }}>
-                            {item.planLabel}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <span className={`status-dot status-${item.status}`} title={`Status: ${item.status}`} />
-                  </div>
-
-                  <div className="progress-container">
-                    <div className="progress-track">
-                      <div
-                        className={`progress-bar ${item.status}`}
-                        style={{ width: `${hasLimit ? percent : 100}%` }}
-                      />
-                    </div>
-                    <div className="progress-values">
-                      <span className="progress-percentage">
-                        {hasLimit ? `${percent}%` : "No Limit"}
+          <div className="usage-card tab-fade-in" key={activeSnapshot.provider} style={{ flex: 1, minHeight: 0, justifyContent: "space-between" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div className="usage-card-header">
+                <div className="usage-provider-info">
+                  <span className="usage-provider-name" style={{ fontSize: "1.1rem" }}>
+                    {activeSnapshot.displayName}
+                  </span>
+                  <div className="usage-provider-labels" style={{ marginTop: "4px" }}>
+                    {activeSnapshot.accountLabel && (
+                      <span className="usage-label">{activeSnapshot.accountLabel}</span>
+                    )}
+                    {activeSnapshot.planLabel && (
+                      <span className="usage-label" style={{ borderColor: "rgba(99, 102, 241, 0.2)", color: "#a5b4fc" }}>
+                        {activeSnapshot.planLabel}
                       </span>
-                      <span className="progress-text">
-                        {hasUsed ? (
-                          <>
-                            {item.used}
-                            {hasLimit ? ` / ${item.limit}` : ""} {item.unit}
-                          </>
-                        ) : (
-                          "N/A"
-                        )}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="usage-footer">
-                    <span>{item.provider}</span>
-                    <span>Updated {formatTime(item.lastUpdatedAt)}</span>
+                    )}
                   </div>
                 </div>
-              );
-            })}
+                <span className={`status-dot status-${activeSnapshot.status}`} title={`Status: ${activeSnapshot.status}`} />
+              </div>
+
+              <div className="progress-container" style={{ gap: "10px", marginTop: "10px" }}>
+                {(() => {
+                  const hasLimit = activeSnapshot.limit !== undefined && activeSnapshot.limit !== null && activeSnapshot.limit > 0;
+                  const hasUsed = activeSnapshot.used !== undefined && activeSnapshot.used !== null;
+                  const percent = getPercentage(activeSnapshot.used, activeSnapshot.limit);
+
+                  return (
+                    <>
+                      <div className="progress-track" style={{ height: "8px" }}>
+                        <div
+                          className={`progress-bar ${activeSnapshot.status}`}
+                          style={{ width: `${hasLimit ? percent : 100}%` }}
+                        />
+                      </div>
+                      <div className="progress-values" style={{ fontSize: "0.85rem" }}>
+                        <span className="progress-percentage">
+                          {hasLimit ? `${percent}%` : "No Limit"}
+                        </span>
+                        <span className="progress-text">
+                          {hasUsed ? (
+                            <>
+                              {activeSnapshot.used}
+                              {hasLimit ? ` / ${activeSnapshot.limit}` : ""} {activeSnapshot.unit}
+                            </>
+                          ) : (
+                            "N/A"
+                          )}
+                        </span>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+
+            <div className="usage-footer" style={{ marginTop: "auto" }}>
+              <span>{activeSnapshot.provider}</span>
+              <span>Updated {formatTime(activeSnapshot.lastUpdatedAt)}</span>
+            </div>
           </div>
         )}
       </div>
