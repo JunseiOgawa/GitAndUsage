@@ -79,16 +79,16 @@ function App() {
     if (!config) return;
 
     // Initial load
-    fetchGitStatus(config.repo_path);
-    fetchUsageSnapshots(config.usage_json_path, config.enabled_providers);
+    fetchGitStatus(config.repoPath);
+    fetchUsageSnapshots(config.usageJsonPath, config.enabledProviders);
 
     // Setup polling
     const gitInterval = setInterval(() => {
-      fetchGitStatus(config.repo_path);
+      fetchGitStatus(config.repoPath);
     }, 10000);
 
     const usageInterval = setInterval(() => {
-      fetchUsageSnapshots(config.usage_json_path, config.enabled_providers);
+      fetchUsageSnapshots(config.usageJsonPath, config.enabledProviders);
     }, 30000);
 
     return () => {
@@ -105,8 +105,35 @@ function App() {
     // Immediately reload git and usage snapshots
     setGitLoading(true);
     setUsageLoading(true);
-    fetchGitStatus(newConfig.repo_path);
-    fetchUsageSnapshots(newConfig.usage_json_path, newConfig.enabled_providers);
+    fetchGitStatus(newConfig.repoPath);
+    fetchUsageSnapshots(newConfig.usageJsonPath, newConfig.enabledProviders);
+  };
+
+  // Open directory selection dialogue, save to configuration, and reload UI
+  const handleOpenFolder = async () => {
+    try {
+      const selectedFolder = await invoke<string>("open_folder_dialog");
+      if (selectedFolder && config) {
+        const updatedConfig: AppConfig = {
+          ...config,
+          repoPath: selectedFolder,
+        };
+
+        await invoke("save_app_config", { config: updatedConfig });
+        
+        setConfig(updatedConfig);
+        setGitLoading(true);
+        setUsageLoading(true);
+        fetchGitStatus(updatedConfig.repoPath);
+        fetchUsageSnapshots(updatedConfig.usageJsonPath, updatedConfig.enabledProviders);
+      }
+    } catch (err: any) {
+      console.error("Folder dialogue error:", err);
+      // Suppress alert on deliberate user cancellation
+      if (err !== "No folder selected" && !String(err).includes("No folder selected")) {
+        alert("Failed to configure repository path: " + err);
+      }
+    }
   };
 
   // Premium loading screen for initial app configuration load
@@ -142,7 +169,7 @@ function App() {
   }
 
   return (
-    <main className="app-container">
+    <main className="app-container borderless-canvas">
       {/* Floating Gear Settings Toggle */}
       <button 
         className="settings-toggle-floating-btn"
@@ -160,12 +187,15 @@ function App() {
         status={gitStatus} 
         loading={gitLoading} 
         error={gitError} 
+        onOpenFolder={handleOpenFolder}
       />
       <UsagePanel 
         snapshots={usageSnapshots} 
         loading={usageLoading} 
         error={usageError} 
+        config={config}
       />
+
 
       {showSettings && config && (
         <SettingsView 

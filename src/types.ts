@@ -1,6 +1,11 @@
+export interface GitFileInfo {
+  path: string;
+  status: string;
+}
+
 export interface GitStatus {
-  repo_name: string;
-  current_branch: string;
+  repoName: string;
+  currentBranch: string;
   upstream: string;
   ahead: number;
   behind: number;
@@ -8,7 +13,8 @@ export interface GitStatus {
   staged: number;
   untracked: number;
   conflict: number;
-  commit_graph: string;
+  commitGraph: string;
+  files: GitFileInfo[];
 }
 
 export interface UsageSnapshot {
@@ -24,13 +30,20 @@ export interface UsageSnapshot {
 }
 
 export interface AppConfig {
-  repo_path: string;
-  height_ratio: number;
-  usage_json_path: string;
-  enabled_providers: string[];
-  codex_token?: string;
-  copilot_pat?: string;
-  claude_key?: string;
-  copilot_org?: string; // Optional field for form UI
+  repoPath: string;
+  heightRatio: number;
+  usageJsonPath: string;
+  enabledProviders: string[];
+  codexToken?: string;
+  copilotPat?: string;
+  claudeKey?: string;
+  copilotOrg?: string; // Optional field for form UI
+  codexPlan?: string;
+  codexAccount?: string;
+  copilotPlan?: string;
+  copilotAccount?: string;
+  claudePlan?: string;
+  claudeAccount?: string;
 }
+
 
