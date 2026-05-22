@@ -157,7 +157,7 @@ export const UsagePanel: React.FC<UsagePanelProps> = ({
   };
 
   return (
-    <div className="right-panel">
+    <div className="right-panel" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       {config?.usageOnly && (
         <div 
           data-tauri-drag-region 
@@ -179,46 +179,48 @@ export const UsagePanel: React.FC<UsagePanelProps> = ({
         </div>
       )}
 
-      <div className="usage-viewport" style={{ padding: "16px 52px 16px 14px", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-        {loadingQuotas && quotas.length === 0 ? (
-          <div className="fallback-screen" style={{ height: "100%" }}>
-            <div className="spinner"></div>
-            <p style={{ marginTop: "12px", fontSize: "0.85rem" }}>{t("usage.updating")}</p>
-          </div>
-        ) : quotasError && quotas.length === 0 ? (
-          <div className="fallback-screen" style={{ height: "100%" }}>
-            <div className="fallback-icon">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
+      <div style={{ display: "flex", flex: 1, minHeight: 0, flexDirection: "row" }}>
+        <div className="usage-viewport" style={{ flex: 1, minWidth: 0, padding: "16px 14px", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          {loadingQuotas && quotas.length === 0 ? (
+            <div className="fallback-screen" style={{ height: "100%" }}>
+              <div className="spinner"></div>
+              <p style={{ marginTop: "12px", fontSize: "0.85rem" }}>{t("usage.updating")}</p>
             </div>
-            <h4 style={{ marginBottom: "4px" }}>{t("common.failedToLoad")}</h4>
-            <p className="fallback-text" style={{ fontSize: "0.75rem" }}>{quotasError}</p>
-          </div>
-        ) : (
-          renderCardContent()
-        )}
-      </div>
+          ) : quotasError && quotas.length === 0 ? (
+            <div className="fallback-screen" style={{ height: "100%" }}>
+              <div className="fallback-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              </div>
+              <h4 style={{ marginBottom: "4px" }}>{t("common.failedToLoad")}</h4>
+              <p className="fallback-text" style={{ fontSize: "0.75rem" }}>{quotasError}</p>
+            </div>
+          ) : (
+            renderCardContent()
+          )}
+        </div>
 
-      <div className="usage-tabs-vertical-container">
-        <div className="usage-tabs-vertical">
-          {tabs.map((tab) => {
-            const isActive = activeTab === tab.id;
-            const quota = quotas.find(q => q.provider.toLowerCase() === tab.id);
-            const hasData = quota && quota.loggedIn;
-            return (
-              <button
-                key={tab.id}
-                className={`usage-tab-vertical-btn ${isActive ? "active" : ""}`}
-                onClick={() => setActiveTab(tab.id)}
-              >
-                {tab.label}
-                {hasData && <span className="tab-indicator-dot" />}
-              </button>
-            );
-          })}
+        <div className="usage-tabs-vertical-container">
+          <div className="usage-tabs-vertical">
+            {tabs.map((tab) => {
+              const isActive = activeTab === tab.id;
+              const quota = quotas.find(q => q.provider.toLowerCase() === tab.id);
+              const hasData = quota && quota.loggedIn;
+              return (
+                <button
+                  key={tab.id}
+                  className={`usage-tab-vertical-btn ${isActive ? "active" : ""}`}
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  {tab.label}
+                  {hasData && <span className="tab-indicator-dot" />}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
