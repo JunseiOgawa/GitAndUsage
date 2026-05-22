@@ -275,9 +275,7 @@ interface HorizontalCommitGraphProps {
   repoPath: string;
 }
 
-const HorizontalCommitGraph: React.FC<HorizontalCommitGraphProps> = ({ repoPath }) => {
-  const [commits, setCommits] = useState<CommitInfo[]>([]);
-  const [loading, setLoading] = useState(true);
+const HorizontalCommitGraph: React.FC<HorizontalCommitGraphProps & { commits: CommitInfo[]; loading: boolean }> = ({ repoPath, commits, loading }) => {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
@@ -296,19 +294,8 @@ const HorizontalCommitGraph: React.FC<HorizontalCommitGraphProps> = ({ repoPath 
   const PADDING_RIGHT = 8;
   const SVG_MIN_HEIGHT = 40;
 
-  useEffect(() => {
-    if (!repoPath) return;
-    setLoading(true);
-    invoke<CommitInfo[]>("get_commit_log", { repoPath })
-      .then((data) => {
-        setCommits(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Failed to get commit log:", err);
-        setLoading(false);
-      });
-  }, [repoPath]);
+  // commits and loading are now managed by the parent (GitGraphPanel)
+  // to avoid duplicate fetches and re-mount resets between tabs
 
   useEffect(() => {
     const obs = new ResizeObserver(entries => {
@@ -621,6 +608,10 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
   const [changesView, setChangesView] = useState<"tree" | "list">("tree");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
+  // Shared commit data — fetched once, reused across both tabs
+  const [sharedCommits, setSharedCommits] = useState<CommitInfo[]>([]);
+  const [commitsLoading, setCommitsLoading] = useState(true);
+
   // Panel split sizes (percent for branch column)
   const [branchPct, setBranchPct] = useState(38); // branch panel width percent in branches tab
   const [changesPct, setChangesPct] = useState(42); // changes panel width percent in changes tab
@@ -641,6 +632,21 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
     const deltaPct = (delta / total) * 100;
     setChangesPct(prev => Math.max(20, Math.min(70, prev + deltaPct)));
   }, []);
+
+  // Fetch commit log once when repoPath changes
+  useEffect(() => {
+    if (!repoPath) return;
+    setCommitsLoading(true);
+    invoke<CommitInfo[]>("get_commit_log", { repoPath })
+      .then((data) => {
+        setSharedCommits(data);
+        setCommitsLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to get commit log:", err);
+        setCommitsLoading(false);
+      });
+  }, [repoPath]);
 
   // Toggle folder expansion in changes tree
   const toggleFolder = (path: string) => {
@@ -948,42 +954,24 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
 
   return (
     <div className="left-panel">
-      {/* Top Header Section with Folder Open Button */}
-      <div className="canvas-header" data-tauri-drag-region>
-        <div className="canvas-title" data-tauri-drag-region>
-          {status && status.repoName && !isNotGitRepo ? status.repoName : t("git.notARepo")}
-        </div>
-
-        <button 
-          onClick={onOpenFolder}
-          className="open-folder-btn"
-          title={t("git.openFolder")}
-        >
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-          </svg>
-          {t("git.openFolder")}
-        </button>
-      </div>
-
       {/* Workspace Outer Container combining Vertical Tabs & Content Body */}
       <div className="git-workspace-layout-container">
         {/* Left Side: Premium Vertical Tabs */}
-        {!isNotGitRepo && (
-          <div className="git-workspace-vertical-tabs">
-            <button 
-              className={`git-workspace-tab-btn ${activeTab === "branches" ? "active" : ""}`}
-              onClick={() => setActiveTab("branches")}
-              title={`${t("git.branches")} & ${t("git.historyGraph")}`}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="6" y1="3" x2="6" y2="15" />
-                <circle cx="18" cy="6" r="3" />
-                <circle cx="6" cy="18" r="3" />
-                <path d="M18 9a9 9 0 0 1-9 9" />
-              </svg>
-              <span className="tab-label">{t("git.branches")}</span>
-            </button>
+        <div className="git-workspace-vertical-tabs">
+          <button 
+            className={`git-workspace-tab-btn ${activeTab === "branches" || isNotGitRepo ? "active" : ""}`}
+            onClick={() => !isNotGitRepo && setActiveTab("branches")}
+            title={`${t("git.branches")} & ${t("git.historyGraph")}`}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="6" y1="3" x2="6" y2="15" />
+              <circle cx="18" cy="6" r="3" />
+              <circle cx="6" cy="18" r="3" />
+              <path d="M18 9a9 9 0 0 1-9 9" />
+            </svg>
+            <span className="tab-label">{t("git.branches")}</span>
+          </button>
+          {!isNotGitRepo && (
             <button 
               className={`git-workspace-tab-btn ${activeTab === "changes" ? "active" : ""}`}
               onClick={() => setActiveTab("changes")}
@@ -998,8 +986,8 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
               )}
               <span className="tab-label">{t("git.changes")}</span>
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Right Side: Main Content Viewport */}
         <div className="canvas-body">
@@ -1007,25 +995,6 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
             <div className="fallback-screen">
               <div className="spinner"></div>
               <p style={{ marginTop: "16px" }}>{t("git.analyzing")}</p>
-            </div>
-          ) : error || isNotGitRepo ? (
-            <div className="fallback-screen">
-              <div className="fallback-icon">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
-                  <line x1="12" y1="9" x2="12" y2="13" />
-                  <line x1="12" y1="17" x2="12.01" y2="17" />
-                </svg>
-              </div>
-              <h3 style={{ marginBottom: "8px" }}>{t("git.notARepo")}</h3>
-              <p className="fallback-text">
-                {t("git.notARepoDesc")}
-              </p>
-              {error && (
-                <p style={{ marginTop: "12px", color: "var(--color-danger)", fontSize: "0.85rem", fontFamily: "var(--font-mono)" }}>
-                  {error}
-                </p>
-              )}
             </div>
           ) : (
             <div className="split-view-container" ref={splitContainerRef}>
@@ -1038,31 +1007,66 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
                 </div>
               )}
 
-              {activeTab === "branches" ? (
+              {isNotGitRepo || activeTab === "branches" ? (
                 /* =========================================
-                   BRANCHES TAB VIEW (Split: Tree on Left, Graph on Right)
+                   BRANCHES TAB VIEW or NOT A REPO VIEW
                    ========================================= */
                 <>
-                  {/* Left Column: Branch Tree Switcher */}
+                  {/* Left Column: Branch Tree Switcher / Open Folder */}
                   <div
                     className="split-column tree-column branch-switcher-column"
-                    style={{ flex: `0 0 ${branchPct}%`, maxWidth: `${branchPct}%` }}
+                    style={{ flex: isNotGitRepo ? "1 1 100%" : `0 0 ${branchPct}%`, maxWidth: isNotGitRepo ? "100%" : `${branchPct}%` }}
                   >
-                    <div className="column-header">
-                      <span className="column-header-title">{t("git.branchesCount", { count: status.branches ? status.branches.length : 0 })}</span>
-                      <span className="git-branch-badge-pill">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: "3px" }}>
-                          <line x1="6" y1="3" x2="6" y2="15" />
-                          <circle cx="18" cy="6" r="3" />
-                          <circle cx="6" cy="18" r="3" />
-                          <path d="M18 9a9 9 0 0 1-9 9" />
-                        </svg>
-                        {status.currentBranch}
-                      </span>
+                    <div className="column-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span className="column-header-title">{t("git.branches")}</span>
+                        {!isNotGitRepo && status?.currentBranch && (
+                          <span className="git-branch-badge-pill" style={{ marginLeft: "4px" }}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: "3px" }}>
+                              <line x1="6" y1="3" x2="6" y2="15" />
+                              <circle cx="18" cy="6" r="3" />
+                              <circle cx="6" cy="18" r="3" />
+                              <path d="M18 9a9 9 0 0 1-9 9" />
+                            </svg>
+                            {status.currentBranch}
+                          </span>
+                        )}
+                      </div>
+
+                      {(isNotGitRepo || repoPath) && (
+                        <button 
+                          onClick={onOpenFolder}
+                          className="open-folder-btn"
+                          title={t("git.openFolder")}
+                          style={{ margin: 0 }}
+                        >
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: "4px" }}>
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                          </svg>
+                          {t("git.openFolder")}
+                        </button>
+                      )}
                     </div>
 
                     <div className="tree-viewport branch-tree-viewport">
-                      {branchTree && Object.keys(branchTree.children).length > 0 ? (
+                      {isNotGitRepo ? (
+                        <div className="tree-empty-state" style={{ padding: "40px 24px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1.5" style={{ marginBottom: "16px" }}>
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                          </svg>
+                          <h3 style={{ fontSize: "0.95rem", fontWeight: 600, color: "var(--text-primary)", marginBottom: "8px" }}>
+                            {t("git.notARepo")}
+                          </h3>
+                          <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", maxWidth: "280px", margin: 0, lineHeight: "1.5" }}>
+                            {t("git.notARepoDesc")}
+                          </p>
+                          {error && (
+                            <p style={{ marginTop: "12px", color: "var(--color-danger)", fontSize: "0.75rem", fontFamily: "var(--font-mono)" }}>
+                              {error}
+                            </p>
+                          )}
+                        </div>
+                      ) : branchTree && Object.keys(branchTree.children).length > 0 ? (
                         <div className="tree-root-container branch-tree-root">
                           {renderBranchNode(branchTree)}
                         </div>
@@ -1074,32 +1078,29 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
                     </div>
                   </div>
 
-                  {/* Resizer */}
-                  <Resizer onDrag={handleBranchResize} />
+                  {!isNotGitRepo && (
+                    <>
+                      {/* Resizer */}
+                      <Resizer onDrag={handleBranchResize} />
 
-                  {/* Right Column: Horizontal Git Graph */}
-                  <div
-                    className="split-column graph-column branch-graph-column"
-                    style={{ flex: `1 1 0`, minWidth: 0, maxWidth: "none" }}
-                  >
-                    <div className="column-header">
-                      <div className="column-title-text">
-                        <span className="column-header-title">{t("git.historyGraph")}</span>
-                        {status.upstream && (
-                          <span className="git-upstream">
-                            {t("git.via", { upstream: status.upstream })}
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div style={{ display: "flex", gap: "6px" }}>
-                        {status.ahead > 0 && <span className="git-sync-badge ahead">{t("git.ahead", { count: status.ahead })}</span>}
-                        {status.behind > 0 && <span className="git-sync-badge behind">{t("git.behind", { count: status.behind })}</span>}
-                      </div>
-                    </div>
+                      {/* Right Column: Horizontal Git Graph */}
+                      <div
+                        className="split-column graph-column branch-graph-column"
+                        style={{ flex: `1 1 0`, minWidth: 0, maxWidth: "none" }}
+                      >
+                        <div className="column-header">
+                          <div className="column-title-text">
+                            <span className="column-header-title">{t("git.historyGraph")}</span>
+                          </div>
+                          
+                          <div style={{ display: "flex", gap: "6px" }}>
+                            {status.ahead > 0 && <span className="git-sync-badge ahead">{t("git.ahead", { count: status.ahead })}</span>}
+                            {status.behind > 0 && <span className="git-sync-badge behind">{t("git.behind", { count: status.behind })}</span>}
+                          </div>
+                        </div>
 
                     <div className="graph-code-view" style={{ padding: 0, overflow: "auto" }}>
-                      <HorizontalCommitGraph repoPath={repoPath} />
+                      <HorizontalCommitGraph repoPath={repoPath} commits={sharedCommits} loading={commitsLoading} />
                     </div>
                   </div>
                 </>
@@ -1177,7 +1178,7 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
                   {/* Resizer */}
                   <Resizer onDrag={handleChangesResize} />
 
-                  {/* Right Column: Horizontal Git Graph */}
+                  {/* Right Column: Horizontal Git Graph (shared instance, visibility toggled by parent) */}
                   <div
                     className="split-column graph-column"
                     style={{ flex: `1 1 0`, minWidth: 0, maxWidth: "none" }}
@@ -1190,7 +1191,7 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
                     </div>
 
                     <div className="graph-code-view" style={{ padding: 0, overflow: "auto" }}>
-                      <HorizontalCommitGraph repoPath={repoPath} />
+                      <HorizontalCommitGraph repoPath={repoPath} commits={sharedCommits} loading={commitsLoading} />
                     </div>
                   </div>
                 </>

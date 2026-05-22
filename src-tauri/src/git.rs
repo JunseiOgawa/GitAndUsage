@@ -279,8 +279,9 @@ pub fn get_commit_log(repo_path: String) -> Result<Vec<CommitInfo>, String> {
     let sep = "\x1f"; // Unit Separator — won't appear in commit messages
     let format = format!("%H{sep}%h{sep}%an{sep}%ae{sep}%aI{sep}%ar{sep}%s{sep}%D{sep}%P", sep = sep);
 
+    let format_arg = format!("--format={}", format);
     let output = Command::new("git")
-        .args(["log", "--format", &format, "-n", "50"])
+        .args(["log", &format_arg, "-n", "50"])
         .current_dir(&repo_path)
         .output()
         .map_err(|e| e.to_string())?;
@@ -402,8 +403,9 @@ pub fn get_commit_details(repo_path: String, commit_hash: String) -> Result<Comm
     // We use a custom delimiter to safely extract the commit subject and body.
     let sep = "\x1f";
     let format = format!("%H{sep}%h{sep}%an{sep}%ae{sep}%aI{sep}%ar{sep}%s{sep}%b", sep = sep);
+    let format_arg = format!("--format={}", format);
     let output_meta = Command::new("git")
-        .args(["show", "--format", &format, "--no-patch", &commit_hash])
+        .args(["show", &format_arg, "--no-patch", &commit_hash])
         .current_dir(&repo_path)
         .output()
         .map_err(|e| e.to_string())?;
