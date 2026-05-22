@@ -3,6 +3,13 @@ use std::process::Command;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
+pub struct GitFileInfo {
+    pub path: String,
+    pub status: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct GitStatus {
     pub repo_name: String,
     pub current_branch: String,
@@ -14,6 +21,17 @@ pub struct GitStatus {
     pub untracked: u32,
     pub conflict: u32,
     pub commit_graph: String,
+    pub files: Vec<GitFileInfo>,
+    pub branches: Vec<String>,
+}
+
+#[tauri::command]
+pub fn open_folder_dialog() -> Result<String, String> {
+    let folder = rfd::FileDialog::new().pick_folder();
+    match folder {
+        Some(path) => Ok(path.to_string_lossy().to_string()),
+        None => Err("No folder selected".to_string()),
+    }
 }
 
 #[tauri::command]
@@ -31,6 +49,8 @@ pub fn get_git_status(repo_path: String) -> Result<GitStatus, String> {
             untracked: 0,
             conflict: 0,
             commit_graph: "".to_string(),
+            files: vec![],
+            branches: vec![],
         });
     }
 
@@ -57,6 +77,8 @@ pub fn get_git_status(repo_path: String) -> Result<GitStatus, String> {
                 untracked: 0,
                 conflict: 0,
                 commit_graph: "".to_string(),
+                files: vec![],
+                branches: vec![],
             });
         }
     };
@@ -124,6 +146,7 @@ pub fn get_git_status(repo_path: String) -> Result<GitStatus, String> {
     let mut modified = 0;
     let mut untracked = 0;
     let mut conflict = 0;
+    let mut files = Vec::new();
 
     if let Ok(out) = status_output {
         if out.status.success() {
@@ -135,6 +158,14 @@ pub fn get_git_status(repo_path: String) -> Result<GitStatus, String> {
                 let bytes = line.as_bytes();
                 let x = bytes[0] as char;
                 let y = bytes[1] as char;
+
+                // Parse GitFileInfo status and path
+                let status_str = line[0..2].trim().to_string();
+                let path_str = line[3..].to_string();
+                files.push(GitFileInfo {
+                    path: path_str,
+                    status: status_str,
+                });
 
                 // Check for conflict
                 if (x == 'D' && y == 'D')
@@ -175,6 +206,30 @@ pub fn get_git_status(repo_path: String) -> Result<GitStatus, String> {
         _ => "".to_string(),
     };
 
+    // 7. Get all branches
+    let branches_output = Command::new("git")
+        .args(["branch", "-a", "--format=%(refname:short)"])
+        .current_dir(&repo_path)
+        .output();
+
+    let mut branches = Vec::new();
+    if let Ok(out) = branches_output {
+        if out.status.success() {
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            for line in stdout.lines() {
+                let mut line_trimmed = line.trim().to_string();
+                if !line_trimmed.is_empty() {
+                    if line_trimmed.starts_with("remotes/") {
+                        line_trimmed = line_trimmed.replacen("remotes/", "", 1);
+                    }
+                    if !line_trimmed.contains("/HEAD") && !line_trimmed.contains("->") {
+                        branches.push(line_trimmed);
+                    }
+                }
+            }
+        }
+    }
+
     Ok(GitStatus {
         repo_name,
         current_branch,
@@ -186,5 +241,45 @@ pub fn get_git_status(repo_path: String) -> Result<GitStatus, String> {
         untracked,
         conflict,
         commit_graph,
+        files,
+        branches,
     })
+}
+
+#[tauri::command]
+pub fn checkout_branch(repo_path: String, branch_name: String) -> Result<(), String> {
+    let target_branch = if branch_name.starts_with("remotes/") {
+        branch_name.replacen("remotes/", "", 1)
+    } else {
+        branch_name
+    };
+
+    let output = Command::new("git")
+        .args(["checkout", &target_branch])
+        .current_dir(&repo_path)
+        .output();
+
+    match output {
+        Ok(out) if out.status.success() => Ok(()),
+        Ok(out) => {
+            let err_msg = String::from_utf8_lossy(&out.stderr).trim().to_string();
+            if target_branch.contains('/') {
+                let parts: Vec<&str> = target_branch.splitn(2, '/').collect();
+                if parts.len() == 2 {
+                    let short_name = parts[1];
+                    let retry_output = Command::new("git")
+                        .args(["checkout", "-b", short_name, "--track", &target_branch])
+                        .current_dir(&repo_path)
+                        .output();
+                    if let Ok(rout) = retry_output {
+                        if rout.status.success() {
+                            return Ok(());
+                        }
+                    }
+                }
+            }
+            Err(err_msg)
+        }
+        Err(e) => Err(e.to_string()),
+    }
 }
