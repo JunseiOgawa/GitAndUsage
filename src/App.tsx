@@ -19,9 +19,9 @@ function App() {
   const [usageSnapshots, setUsageSnapshots] = useState<UsageSnapshot[]>([]);
   const [usageLoading, setUsageLoading] = useState(true);
   const [usageError, setUsageError] = useState<string | null>(null);
-
   // Settings modal visibility
   const [showSettings, setShowSettings] = useState(false);
+  const [showGearMenu, setShowGearMenu] = useState(false);
 
   // Load application configuration
   const loadConfig = useCallback(async () => {
@@ -39,6 +39,74 @@ function App() {
   useEffect(() => {
     loadConfig();
   }, [loadConfig]);
+
+  // Dynamic CSS variables injector for Accent Color and Transparency
+  useEffect(() => {
+    if (!config) return;
+    const root = document.documentElement;
+    const opacity = (config.windowOpacity ?? 90) / 100;
+    root.style.setProperty("--window-opacity", opacity.toString());
+    
+    const accentColor = config.accentColor ?? "#6366f1";
+    root.style.setProperty("--accent-color", accentColor);
+    
+    // Handle accent glow (converting hex to rgba with alpha)
+    let glowColor = "rgba(99, 102, 241, 0.25)";
+    if (accentColor.startsWith("#")) {
+      const hex = accentColor.replace("#", "");
+      if (hex.length === 6) {
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        glowColor = `rgba(${r}, ${g}, ${b}, 0.25)`;
+      } else if (hex.length === 3) {
+        const r = parseInt(hex.substring(0, 1).repeat(2), 16);
+        const g = parseInt(hex.substring(1, 2).repeat(2), 16);
+        const b = parseInt(hex.substring(2, 3).repeat(2), 16);
+        glowColor = `rgba(${r}, ${g}, ${b}, 0.25)`;
+      }
+    }
+    root.style.setProperty("--accent-glow", glowColor);
+  }, [config]);
+
+  // Handle outside clicks to close the floating gear menu
+  useEffect(() => {
+    if (!showGearMenu) return;
+
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".settings-toggle-floating-btn") && !target.closest(".gear-dropdown-menu")) {
+        setShowGearMenu(false);
+      }
+    };
+
+    document.addEventListener("click", handleOutsideClick);
+    return () => {
+      document.removeEventListener("click", handleOutsideClick);
+    };
+  }, [showGearMenu]);
+
+  const handleToggleUsageOnly = async () => {
+    if (!config) return;
+    try {
+      const updatedConfig: AppConfig = {
+        ...config,
+        usageOnly: !config.usageOnly,
+      };
+      await invoke("save_app_config", { config: updatedConfig });
+      setConfig(updatedConfig);
+      setShowGearMenu(false);
+    } catch (err) {
+      console.error("Failed to toggle usage only mode:", err);
+    }
+  };
+
+  const handleExitApp = () => {
+    invoke("exit_app").catch((err) => {
+      console.error("Failed to exit app:", err);
+    });
+  };
+
 
   // Fetch functions exposed to allow manual immediate refresh after saving settings
   const fetchGitStatus = useCallback(async (repoPath: string) => {
@@ -183,18 +251,45 @@ function App() {
 
   return (
     <main className={`app-container borderless-canvas ${isUsageOnly ? "usage-only-mode" : ""}`}>
-      {/* Floating Gear Settings Toggle */}
-      <button 
-        className="settings-toggle-floating-btn"
-        onClick={() => setShowSettings(true)}
-        title={t("settings.title")}
-        aria-label={t("settings.title")}
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="3" />
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-        </svg>
-      </button>
+      {/* Floating Gear Settings Toggle & Popover Menu */}
+      <div style={{ position: "absolute", top: "8px", right: "8px", zIndex: 100, display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+        <button 
+          className={`settings-toggle-floating-btn ${showGearMenu ? "active" : ""}`}
+          onClick={() => setShowGearMenu(!showGearMenu)}
+          title={t("settings.title")}
+          aria-label={t("settings.title")}
+          style={{ position: "static" }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </button>
+
+        {showGearMenu && (
+          <div className="gear-dropdown-menu tab-slide-fade-in">
+            <button className="gear-dropdown-item" onClick={handleToggleUsageOnly}>
+              <span className={`gear-dropdown-dot ${isUsageOnly ? "active" : ""}`} />
+              <span style={{ flex: 1, textAlign: "left" }}>{t("settings.gearMenu.childMode")}</span>
+            </button>
+            <button className="gear-dropdown-item" onClick={() => { setShowSettings(true); setShowGearMenu(false); }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: "6px", color: "var(--text-secondary)" }}>
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              </svg>
+              <span style={{ flex: 1, textAlign: "left" }}>{t("settings.gearMenu.settings")}</span>
+            </button>
+            <button className="gear-dropdown-item danger" onClick={handleExitApp}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: "6px" }}>
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              <span style={{ flex: 1, textAlign: "left" }}>{t("settings.gearMenu.exitApp")}</span>
+            </button>
+          </div>
+        )}
+      </div>
 
       {!isUsageOnly && (
         <GitGraphPanel 

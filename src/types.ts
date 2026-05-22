@@ -39,13 +39,8 @@ export interface AppConfig {
   codexToken?: string;
   copilotPat?: string;
   claudeKey?: string;
-  copilotOrg?: string; // Optional field for form UI
-  codexPlan?: string;
-  codexAccount?: string;
-  copilotPlan?: string;
-  copilotAccount?: string;
-  claudePlan?: string;
-  claudeAccount?: string;
+  accentColor?: string;
+  windowOpacity?: number;
 }
 
 export type ProviderId = "claude" | "codex" | "copilot" | "opencode";

@@ -35,7 +35,7 @@ pub fn get_usage_snapshot(json_path: String) -> Result<Vec<UsageSnapshot>, Strin
     let cached_snapshots = load_cached_snapshots(path);
 
     // 2. Fetch Codex (OpenAI)
-    match fetch_codex_usage(&client, &config.codex_token, &config.codex_plan, &config.codex_account) {
+    match fetch_codex_usage(&client, &config.codex_token, &None, &None) {
         Ok(snapshot) => current_snapshots.push(snapshot),
         Err(err) => {
             println!("Codex fetch failed (using fallback cache): {}", err);
@@ -47,8 +47,8 @@ pub fn get_usage_snapshot(json_path: String) -> Result<Vec<UsageSnapshot>, Strin
                 current_snapshots.push(UsageSnapshot {
                     provider: "codex".to_string(),
                     display_name: "Codex".to_string(),
-                    account_label: config.codex_account.clone().unwrap_or_default(),
-                    plan_label: config.codex_plan.clone().unwrap_or_else(|| "Pro Plan".to_string()),
+                    account_label: "".to_string(),
+                    plan_label: "Pro Plan".to_string(),
                     used: 0.0,
                     limit: 0.0,
                     unit: "messages".to_string(),
@@ -60,7 +60,7 @@ pub fn get_usage_snapshot(json_path: String) -> Result<Vec<UsageSnapshot>, Strin
     }
 
     // 3. Fetch Copilot
-    match fetch_copilot_usage(&client, &config.copilot_pat, &config.copilot_plan, &config.copilot_account) {
+    match fetch_copilot_usage(&client, &config.copilot_pat, &None, &None) {
         Ok(snapshot) => current_snapshots.push(snapshot),
         Err(err) => {
             println!("Copilot fetch failed (using fallback cache): {}", err);
@@ -72,8 +72,8 @@ pub fn get_usage_snapshot(json_path: String) -> Result<Vec<UsageSnapshot>, Strin
                 current_snapshots.push(UsageSnapshot {
                     provider: "copilot".to_string(),
                     display_name: "GitHub Copilot".to_string(),
-                    account_label: config.copilot_account.clone().unwrap_or_default(),
-                    plan_label: config.copilot_plan.clone().unwrap_or_else(|| "Individual".to_string()),
+                    account_label: "".to_string(),
+                    plan_label: "Individual".to_string(),
                     used: 0.0,
                     limit: 0.0,
                     unit: "requests".to_string(),
@@ -85,7 +85,7 @@ pub fn get_usage_snapshot(json_path: String) -> Result<Vec<UsageSnapshot>, Strin
     }
 
     // 4. Fetch Claude
-    match fetch_claude_usage(&client, &config.claude_key, &config.claude_plan, &config.claude_account) {
+    match fetch_claude_usage(&client, &config.claude_key, &None, &None) {
         Ok(snapshot) => current_snapshots.push(snapshot),
         Err(err) => {
             println!("Claude fetch failed (using fallback cache): {}", err);
@@ -97,8 +97,8 @@ pub fn get_usage_snapshot(json_path: String) -> Result<Vec<UsageSnapshot>, Strin
                 current_snapshots.push(UsageSnapshot {
                     provider: "claude".to_string(),
                     display_name: "Claude".to_string(),
-                    account_label: config.claude_account.clone().unwrap_or_default(),
-                    plan_label: config.claude_plan.clone().unwrap_or_else(|| "Pro Plan".to_string()),
+                    account_label: "".to_string(),
+                    plan_label: "Pro Plan".to_string(),
                     used: 0.0,
                     limit: 0.0,
                     unit: "credits".to_string(),

@@ -14,6 +14,11 @@
     "cancel": "Cancel",
     "save": "Save",
     "saving": "...",
+    "gearMenu": {
+      "childMode": "Child Window Mode",
+      "settings": "Settings",
+      "exitApp": "Exit App"
+    },
     "general": {
       "title": "General",
       "repoPath": "Repo Path",
@@ -21,6 +26,11 @@
       "heightRatio": "Height Ratio",
       "usageOnly": "Usage Only Mode",
       "language": "Language"
+    },
+    "design": {
+      "title": "Design & Theme",
+      "opacity": "Window Opacity",
+      "accentColor": "Theme Color"
     },
     "codex": {
       "title": "Codex (ChatGPT)",

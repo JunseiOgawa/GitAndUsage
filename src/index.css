@@ -1,8 +1,12 @@
 /* @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap'); */
 
 :root {
-  --bg-base: #060608;
-  --bg-canvas: rgba(10, 10, 14, 0.45);
+  --window-opacity: 0.9;
+  --accent-color: #6366f1;
+  --accent-glow: rgba(99, 102, 241, 0.25);
+
+  --bg-base: rgba(6, 6, 8, var(--window-opacity));
+  --bg-canvas: rgba(10, 10, 14, var(--window-opacity));
   --bg-panel-hover: rgba(255, 255, 255, 0.03);
   
   --border-color: rgba(255, 255, 255, 0.04);
@@ -45,7 +49,7 @@
 }
 
 body {
-  background-color: var(--bg-base);
+  background-color: transparent;
   color: var(--text-primary);
   font-family: var(--font-sans);
   overflow: hidden;
@@ -1295,5 +1299,73 @@ body {
   border-color: rgba(239, 68, 68, 0.45);
   box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
 }
+
+/* Gear Dropdown Popover Menu Styles */
+.gear-dropdown-menu {
+  position: absolute;
+  top: 36px;
+  right: 0;
+  background: rgba(14, 14, 18, calc(var(--window-opacity, 0.9) * 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 5px;
+  width: 170px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 110;
+}
+
+.gear-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.76rem;
+  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.gear-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+}
+
+.gear-dropdown-item.danger {
+  color: #f87171;
+}
+
+.gear-dropdown-item.danger:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+}
+
+.gear-dropdown-item.danger svg {
+  stroke: currentColor;
+}
+
+.gear-dropdown-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  transition: var(--transition-smooth);
+  margin-right: 6px;
+}
+
+.gear-dropdown-dot.active {
+  background: var(--accent-color);
+  box-shadow: 0 0 6px var(--accent-color);
+}
+
 
 

@@ -14,6 +14,11 @@
     "cancel": "キャンセル",
     "save": "保存",
     "saving": "...",
+    "gearMenu": {
+      "childMode": "子ウィンドウモード",
+      "settings": "設定",
+      "exitApp": "アプリ終了"
+    },
     "general": {
       "title": "一般",
       "repoPath": "リポジトリパス",
@@ -21,6 +26,11 @@
       "heightRatio": "高さの比率",
       "usageOnly": "使用量のみ表示モード",
       "language": "言語"
+    },
+    "design": {
+      "title": "デザイン & テーマ",
+      "opacity": "ウィンドウ透明度",
+      "accentColor": "テーマカラー"
     },
     "codex": {
       "title": "Codex (ChatGPT)",

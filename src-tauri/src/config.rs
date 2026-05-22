@@ -12,14 +12,10 @@ pub struct AppConfig {
     pub codex_token: Option<String>,
     pub copilot_pat: Option<String>,
     pub claude_key: Option<String>,
-    pub codex_plan: Option<String>,
-    pub codex_account: Option<String>,
-    pub copilot_plan: Option<String>,
-    pub copilot_account: Option<String>,
-    pub claude_plan: Option<String>,
-    pub claude_account: Option<String>,
     #[serde(default)]
     pub usage_only: bool,
+    pub accent_color: Option<String>,
+    pub window_opacity: Option<u32>,
 }
 
 impl Default for AppConfig {
@@ -40,13 +36,9 @@ impl Default for AppConfig {
             codex_token: None,
             copilot_pat: None,
             claude_key: None,
-            codex_plan: None,
-            codex_account: None,
-            copilot_plan: None,
-            copilot_account: None,
-            claude_plan: None,
-            claude_account: None,
             usage_only: false,
+            accent_color: Some("#6366f1".to_string()),
+            window_opacity: Some(90),
         }
     }
 }
@@ -204,13 +196,9 @@ mod tests {
             codex_token: Some("token123".to_string()),
             copilot_pat: None,
             claude_key: None,
-            codex_plan: Some("Plus".to_string()),
-            codex_account: Some("user@domain.com".to_string()),
-            copilot_plan: None,
-            copilot_account: None,
-            claude_plan: None,
-            claude_account: None,
             usage_only: true,
+            accent_color: Some("#6366f1".to_string()),
+            window_opacity: Some(90),
         };
 
         let json_value = serde_json::to_value(&config).unwrap();
@@ -222,17 +210,17 @@ mod tests {
         assert!(!json_map.contains_key("usage_json_path"));
         assert!(!json_map.contains_key("enabled_providers"));
         assert!(!json_map.contains_key("codex_token"));
-        assert!(!json_map.contains_key("codex_plan"));
-        assert!(!json_map.contains_key("codex_account"));
         assert!(!json_map.contains_key("usage_only"));
+        assert!(!json_map.contains_key("accent_color"));
+        assert!(!json_map.contains_key("window_opacity"));
  
         // Verify camelCase keys exist and match
         assert_eq!(json_map.get("repoPath").unwrap().as_str().unwrap(), "/test/repo");
         assert_eq!(json_map.get("heightRatio").unwrap().as_f64().unwrap(), 0.15);
         assert_eq!(json_map.get("usageJsonPath").unwrap().as_str().unwrap(), "/test/usage.json");
         assert_eq!(json_map.get("codexToken").unwrap().as_str().unwrap(), "token123");
-        assert_eq!(json_map.get("codexPlan").unwrap().as_str().unwrap(), "Plus");
-        assert_eq!(json_map.get("codexAccount").unwrap().as_str().unwrap(), "user@domain.com");
+        assert_eq!(json_map.get("accentColor").unwrap().as_str().unwrap(), "#6366f1");
+        assert_eq!(json_map.get("windowOpacity").unwrap().as_u64().unwrap(), 90);
         assert_eq!(json_map.get("usageOnly").unwrap().as_bool().unwrap(), true);
     }
 }

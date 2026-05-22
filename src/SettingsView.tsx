@@ -9,6 +9,16 @@ interface SettingsViewProps {
   onSave: (newConfig: AppConfig) => void;
 }
 
+const PRESET_COLORS = [
+  "#6366f1", // Indigo
+  "#10b981", // Emerald
+  "#f43f5e", // Rose
+  "#8b5cf6", // Violet
+  "#f59e0b", // Amber
+  "#06b6d4", // Cyan
+  "#94a3b8", // Silver
+];
+
 export const SettingsView: React.FC<SettingsViewProps> = ({
   config,
   onClose,
@@ -18,19 +28,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [repoPath, setRepoPath] = useState(config.repoPath);
   const [heightRatio, setHeightRatio] = useState(config.heightRatio);
   const [usageOnly, setUsageOnly] = useState(config.usageOnly || false);
+  const [accentColor, setAccentColor] = useState(config.accentColor || "#6366f1");
+  const [windowOpacity, setWindowOpacity] = useState(config.windowOpacity || 90);
   const usageJsonPath = config.usageJsonPath;
   
-  // Subscription Tracking Fields
-  const [codexPlan, setCodexPlan] = useState(config.codexPlan || "Plus");
-  const [codexAccount, setCodexAccount] = useState(config.codexAccount || "");
   const [codexToken, setCodexToken] = useState(config.codexToken || "");
-
-  const [copilotPlan, setCopilotPlan] = useState(config.copilotPlan || "Individual");
-  const [copilotAccount, setCopilotAccount] = useState(config.copilotAccount || "");
   const [copilotPat, setCopilotPat] = useState(config.copilotPat || "");
-
-  const [claudePlan, setClaudePlan] = useState(config.claudePlan || "Pro");
-  const [claudeAccount, setClaudeAccount] = useState(config.claudeAccount || "");
   const [claudeKey, setClaudeKey] = useState(config.claudeKey || "");
 
   const [saving, setSaving] = useState(false);
@@ -52,15 +55,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       heightRatio: heightRatio,
       usageJsonPath: usageJsonPath,
       usageOnly: usageOnly,
+      accentColor: accentColor,
+      windowOpacity: windowOpacity,
       codexToken: codexToken || undefined,
       copilotPat: copilotPat || undefined,
       claudeKey: claudeKey || undefined,
-      codexPlan: codexPlan,
-      codexAccount: codexAccount,
-      copilotPlan: copilotPlan,
-      copilotAccount: copilotAccount,
-      claudePlan: claudePlan,
-      claudeAccount: claudeAccount,
     };
 
     try {
@@ -181,7 +180,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </select>
             </div>
 
-            <div className="form-group-compact" style={{ display: "flex", alignItems: "center", gap: "6px", margin: "6px 0" }}>
+            <div className="form-group-compact" style={{ display: "flex", alignItems: "center", gap: "6px", margin: "2px 0 0 0" }}>
               <input
                 id="usage-only"
                 type="checkbox"
@@ -193,46 +192,84 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 {t("settings.general.usageOnly")}
               </label>
             </div>
-
-            <div className="settings-inline-actions">
-              <button type="button" className="btn-secondary-compact" onClick={onClose}>
-                {t("settings.cancel")}
-              </button>
-              <button type="submit" className="btn-primary-compact" disabled={saving}>
-                {saving ? t("settings.saving") : t("settings.save")}
-              </button>
-            </div>
           </div>
 
-          {/* Column 2: Codex Settings */}
+          {/* Column 2: Design & Theme */}
           <div className="grid-section">
-            <div className="grid-section-title">{t("settings.codex.title")}</div>
+            <div className="grid-section-title">{t("settings.design.title")}</div>
             
             <div className="form-group-compact">
-              <label htmlFor="codex-plan">{t("settings.codex.plan")}</label>
-              <select
-                id="codex-plan"
-                value={codexPlan}
-                onChange={(e) => setCodexPlan(e.target.value)}
-              >
-                <option value="Plus">Plus</option>
-                <option value="Pro">Pro</option>
-                <option value="Team">Team</option>
-                <option value="Enterprise">Enterprise</option>
-              </select>
-            </div>
-
-            <div className="form-group-compact">
-              <label htmlFor="codex-account">{t("settings.codex.account")}</label>
+              <label htmlFor="window-opacity">{t("settings.design.opacity")}: {windowOpacity}%</label>
               <input
-                id="codex-account"
-                type="text"
-                value={codexAccount}
-                onChange={(e) => setCodexAccount(e.target.value)}
-                placeholder={t("settings.codex.accountPlaceholder")}
+                id="window-opacity"
+                type="range"
+                min="20"
+                max="100"
+                value={windowOpacity}
+                onChange={(e) => setWindowOpacity(parseInt(e.target.value))}
+                style={{
+                  width: "100%",
+                  height: "4px",
+                  background: "rgba(255, 255, 255, 0.1)",
+                  borderRadius: "2px",
+                  outline: "none",
+                  cursor: "pointer",
+                  margin: "4px 0"
+                }}
               />
             </div>
 
+            <div className="form-group-compact">
+              <label>{t("settings.design.accentColor")}</label>
+              <div style={{ display: "flex", gap: "5px", alignItems: "center", marginTop: "3px" }}>
+                {PRESET_COLORS.map(color => (
+                  <button
+                    key={color}
+                    type="button"
+                    style={{
+                      width: "12px",
+                      height: "12px",
+                      borderRadius: "50%",
+                      backgroundColor: color,
+                      border: accentColor === color ? "2px solid #ffffff" : "1px solid rgba(255,255,255,0.2)",
+                      cursor: "pointer",
+                      padding: 0,
+                      boxShadow: accentColor === color ? `0 0 6px ${color}` : "none",
+                      transition: "all 0.15s ease"
+                    }}
+                    onClick={() => setAccentColor(color)}
+                  />
+                ))}
+                <div style={{ position: "relative", width: "12px", height: "12px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <input 
+                    type="color" 
+                    value={accentColor} 
+                    onChange={(e) => setAccentColor(e.target.value)} 
+                    style={{
+                      position: "absolute",
+                      opacity: 0,
+                      width: "100%",
+                      height: "100%",
+                      cursor: "pointer"
+                    }}
+                  />
+                  <div style={{
+                    width: "12px",
+                    height: "12px",
+                    borderRadius: "50%",
+                    background: "conic-gradient(red, yellow, lime, aqua, blue, magenta, red)",
+                    border: !PRESET_COLORS.includes(accentColor) ? "2px solid #ffffff" : "1px solid rgba(255,255,255,0.2)",
+                    boxShadow: !PRESET_COLORS.includes(accentColor) ? `0 0 6px ${accentColor}` : "none",
+                  }} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Column 3: Codex & Copilot Tokens */}
+          <div className="grid-section">
+            <div className="grid-section-title">{t("settings.codex.title")} / {t("settings.copilot.title")}</div>
+            
             <div className="form-group-compact">
               <label htmlFor="codex-token">{t("settings.codex.token")}</label>
               <input
@@ -243,37 +280,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 placeholder={t("settings.codex.tokenPlaceholder")}
               />
             </div>
-          </div>
 
-          {/* Column 3: Copilot Settings */}
-          <div className="grid-section">
-            <div className="grid-section-title">{t("settings.copilot.title")}</div>
-            
-            <div className="form-group-compact">
-              <label htmlFor="copilot-plan">{t("settings.copilot.plan")}</label>
-              <select
-                id="copilot-plan"
-                value={copilotPlan}
-                onChange={(e) => setCopilotPlan(e.target.value)}
-              >
-                <option value="Individual">Individual</option>
-                <option value="Business">Business</option>
-                <option value="Enterprise">Enterprise</option>
-              </select>
-            </div>
-
-            <div className="form-group-compact">
-              <label htmlFor="copilot-account">{t("settings.copilot.account")}</label>
-              <input
-                id="copilot-account"
-                type="text"
-                value={copilotAccount}
-                onChange={(e) => setCopilotAccount(e.target.value)}
-                placeholder={t("settings.copilot.accountPlaceholder")}
-              />
-            </div>
-
-            <div className="form-group-compact">
+            <div className="form-group-compact" style={{ marginTop: "4px" }}>
               <label htmlFor="copilot-pat">{t("settings.copilot.pat")}</label>
               <input
                 id="copilot-pat"
@@ -285,34 +293,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
           </div>
 
-          {/* Column 4: Claude Settings */}
+          {/* Column 4: Claude & Action Buttons */}
           <div className="grid-section">
             <div className="grid-section-title">{t("settings.claude.title")}</div>
             
-            <div className="form-group-compact">
-              <label htmlFor="claude-plan">{t("settings.claude.plan")}</label>
-              <select
-                id="claude-plan"
-                value={claudePlan}
-                onChange={(e) => setClaudePlan(e.target.value)}
-              >
-                <option value="Pro">Pro</option>
-                <option value="Team">Team</option>
-                <option value="Enterprise">Enterprise</option>
-              </select>
-            </div>
-
-            <div className="form-group-compact">
-              <label htmlFor="claude-account">{t("settings.claude.account")}</label>
-              <input
-                id="claude-account"
-                type="text"
-                value={claudeAccount}
-                onChange={(e) => setClaudeAccount(e.target.value)}
-                placeholder={t("settings.claude.accountPlaceholder")}
-              />
-            </div>
-
             <div className="form-group-compact">
               <label htmlFor="claude-key">{t("settings.claude.key")}</label>
               <input
@@ -322,6 +306,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 onChange={(e) => setClaudeKey(e.target.value)}
                 placeholder={t("settings.claude.keyPlaceholder")}
               />
+            </div>
+
+            <div className="settings-inline-actions" style={{ marginTop: "8px" }}>
+              <button type="button" className="btn-secondary-compact" onClick={onClose}>
+                {t("settings.cancel")}
+              </button>
+              <button type="submit" className="btn-primary-compact" disabled={saving}>
+                {saving ? t("settings.saving") : t("settings.save")}
+              </button>
             </div>
           </div>
         </form>
