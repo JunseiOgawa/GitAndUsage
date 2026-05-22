@@ -109,6 +109,15 @@ function App() {
     fetchUsageSnapshots(newConfig.usageJsonPath, newConfig.enabledProviders);
   };
 
+  // Dynamic window resizing when settings open/close
+  useEffect(() => {
+    if (config) {
+      invoke("set_window_size_mode", { settingsOpen: showSettings }).catch((err) => {
+        console.error("Failed to invoke set_window_size_mode:", err);
+      });
+    }
+  }, [showSettings, config]);
+
   // Open directory selection dialogue, save to configuration, and reload UI
   const handleOpenFolder = async () => {
     try {
@@ -168,8 +177,10 @@ function App() {
     );
   }
 
+  const isUsageOnly = config?.usageOnly || false;
+
   return (
-    <main className="app-container borderless-canvas">
+    <main className={`app-container borderless-canvas ${isUsageOnly ? "usage-only-mode" : ""}`}>
       {/* Floating Gear Settings Toggle */}
       <button 
         className="settings-toggle-floating-btn"
@@ -183,12 +194,17 @@ function App() {
         </svg>
       </button>
 
-      <GitGraphPanel 
-        status={gitStatus} 
-        loading={gitLoading} 
-        error={gitError} 
-        onOpenFolder={handleOpenFolder}
-      />
+      {!isUsageOnly && (
+        <GitGraphPanel 
+          status={gitStatus} 
+          loading={gitLoading} 
+          error={gitError} 
+          onOpenFolder={handleOpenFolder}
+          repoPath={config?.repoPath || ""}
+          onRefresh={() => config && fetchGitStatus(config.repoPath)}
+        />
+      )}
+      
       <UsagePanel 
         snapshots={usageSnapshots} 
         loading={usageLoading} 

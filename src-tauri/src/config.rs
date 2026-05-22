@@ -18,6 +18,8 @@ pub struct AppConfig {
     pub copilot_account: Option<String>,
     pub claude_plan: Option<String>,
     pub claude_account: Option<String>,
+    #[serde(default)]
+    pub usage_only: bool,
 }
 
 impl Default for AppConfig {
@@ -44,6 +46,7 @@ impl Default for AppConfig {
             copilot_account: None,
             claude_plan: None,
             claude_account: None,
+            usage_only: false,
         }
     }
 }
@@ -100,6 +103,7 @@ mod tests {
         assert!(config.codex_token.is_none());
         assert!(config.copilot_pat.is_none());
         assert!(config.claude_key.is_none());
+        assert!(!config.usage_only);
     }
 
     #[test]
@@ -128,6 +132,7 @@ mod tests {
             copilot_account: None,
             claude_plan: None,
             claude_account: None,
+            usage_only: true,
         };
 
         let json_value = serde_json::to_value(&config).unwrap();
@@ -141,7 +146,8 @@ mod tests {
         assert!(!json_map.contains_key("codex_token"));
         assert!(!json_map.contains_key("codex_plan"));
         assert!(!json_map.contains_key("codex_account"));
-
+        assert!(!json_map.contains_key("usage_only"));
+ 
         // Verify camelCase keys exist and match
         assert_eq!(json_map.get("repoPath").unwrap().as_str().unwrap(), "/test/repo");
         assert_eq!(json_map.get("heightRatio").unwrap().as_f64().unwrap(), 0.15);
@@ -149,5 +155,6 @@ mod tests {
         assert_eq!(json_map.get("codexToken").unwrap().as_str().unwrap(), "token123");
         assert_eq!(json_map.get("codexPlan").unwrap().as_str().unwrap(), "Plus");
         assert_eq!(json_map.get("codexAccount").unwrap().as_str().unwrap(), "user@domain.com");
+        assert_eq!(json_map.get("usageOnly").unwrap().as_bool().unwrap(), true);
     }
 }

@@ -15,6 +15,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 }) => {
   const [repoPath, setRepoPath] = useState(config.repoPath);
   const [heightRatio, setHeightRatio] = useState(config.heightRatio);
+  const [usageOnly, setUsageOnly] = useState(config.usageOnly || false);
   const usageJsonPath = config.usageJsonPath;
   
   // Subscription Tracking Fields
@@ -43,6 +44,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       repoPath: repoPath,
       heightRatio: heightRatio,
       usageJsonPath: usageJsonPath,
+      usageOnly: usageOnly,
       codexToken: codexToken || undefined,
       copilotPat: copilotPat || undefined,
       claudeKey: claudeKey || undefined,
@@ -80,12 +82,33 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           
           {error && <span className="error-badge-compact">{error}</span>}
           
-          <button className="settings-close-btn" onClick={onClose}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <button 
+              type="button"
+              className="settings-exit-app-btn" 
+              onClick={async () => {
+                try {
+                  await invoke("exit_app");
+                } catch (err) {
+                  console.error("Failed to exit app:", err);
+                }
+              }}
+              title="Exit Application"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: "3px" }}>
+                <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
+                <line x1="12" y1="2" x2="12" y2="12" />
+              </svg>
+              Exit App
+            </button>
+            
+            <button className="settings-close-btn" onClick={onClose} type="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* 4-Column Grid Form */}
@@ -118,6 +141,19 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <option value={0.20}>20%</option>
                 <option value={0.25}>25%</option>
               </select>
+            </div>
+
+            <div className="form-group-compact" style={{ display: "flex", alignItems: "center", gap: "6px", margin: "6px 0" }}>
+              <input
+                id="usage-only"
+                type="checkbox"
+                checked={usageOnly}
+                onChange={(e) => setUsageOnly(e.target.checked)}
+                style={{ width: "auto", height: "auto", cursor: "pointer" }}
+              />
+              <label htmlFor="usage-only" style={{ cursor: "pointer", fontSize: "0.72rem", userSelect: "none" }}>
+                Usage Only Mode
+              </label>
             </div>
 
             <div className="settings-inline-actions">
