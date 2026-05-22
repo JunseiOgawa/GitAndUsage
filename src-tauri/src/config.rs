@@ -59,14 +59,61 @@ fn get_config_path() -> PathBuf {
         .join("config.toml")
 }
 
+fn obfuscate(plain: &str) -> String {
+    let key = b"GitAndUsageSecureKey123";
+    let xor_bytes: Vec<u8> = plain.bytes()
+        .enumerate()
+        .map(|(i, b)| b ^ key[i % key.len()])
+        .collect();
+    let hex_str: String = xor_bytes.iter().map(|b| format!("{:02x}", b)).collect();
+    format!("enc:{}", hex_str)
+}
+
+fn deobfuscate(cipher: &str) -> Option<String> {
+    if !cipher.starts_with("enc:") {
+        return Some(cipher.to_string());
+    }
+    let data = &cipher[4..];
+    if data.len() % 2 != 0 {
+        return None;
+    }
+    let mut decoded = Vec::new();
+    for i in (0..data.len()).step_by(2) {
+        if i + 2 > data.len() {
+            return None;
+        }
+        let byte_str = &data[i..i+2];
+        let byte = u8::from_str_radix(byte_str, 16).ok()?;
+        decoded.push(byte);
+    }
+    let key = b"GitAndUsageSecureKey123";
+    let plain_bytes: Vec<u8> = decoded.iter()
+        .enumerate()
+        .map(|(i, &b)| b ^ key[i % key.len()])
+        .collect();
+    String::from_utf8(plain_bytes).ok()
+}
+
 #[tauri::command]
 pub fn get_app_config() -> Result<AppConfig, String> {
     let config_path = get_config_path();
     if config_path.exists() {
         let contents = fs::read_to_string(&config_path)
             .map_err(|e| format!("Failed to read config file: {}", e))?;
-        let config: AppConfig = toml::from_str(&contents)
+        let mut config: AppConfig = toml::from_str(&contents)
             .map_err(|e| format!("Failed to parse config file: {}", e))?;
+        
+        // Transparently deobfuscate credentials
+        if let Some(ref t) = config.codex_token {
+            config.codex_token = deobfuscate(t);
+        }
+        if let Some(ref t) = config.copilot_pat {
+            config.copilot_pat = deobfuscate(t);
+        }
+        if let Some(ref t) = config.claude_key {
+            config.claude_key = deobfuscate(t);
+        }
+        
         Ok(config)
     } else {
         let default_config = AppConfig::default();
@@ -79,7 +126,24 @@ pub fn get_app_config() -> Result<AppConfig, String> {
 }
 
 #[tauri::command]
-pub fn save_app_config(config: AppConfig) -> Result<(), String> {
+pub fn save_app_config(mut config: AppConfig) -> Result<(), String> {
+    // Transparently obfuscate credentials before saving
+    if let Some(ref t) = config.codex_token {
+        if !t.trim().is_empty() {
+            config.codex_token = Some(obfuscate(t));
+        }
+    }
+    if let Some(ref t) = config.copilot_pat {
+        if !t.trim().is_empty() {
+            config.copilot_pat = Some(obfuscate(t));
+        }
+    }
+    if let Some(ref t) = config.claude_key {
+        if !t.trim().is_empty() {
+            config.claude_key = Some(obfuscate(t));
+        }
+    }
+
     let config_path = get_config_path();
     let toml_str = toml::to_string_pretty(&config)
         .map_err(|e| format!("Failed to serialize config: {}", e))?;
@@ -91,6 +155,20 @@ pub fn save_app_config(config: AppConfig) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_obfuscation_deobfuscation() {
+        let plain = "ghp_mySuperSecretGitHubPat12345";
+        let encrypted = obfuscate(plain);
+        assert!(encrypted.starts_with("enc:"));
+        
+        let decrypted = deobfuscate(&encrypted).unwrap();
+        assert_eq!(plain, decrypted);
+
+        // Plain text tokens (no enc: prefix) should remain untouched
+        let untouched = deobfuscate(plain).unwrap();
+        assert_eq!(plain, untouched);
+    }
 
     #[test]
     fn test_default_config() {
