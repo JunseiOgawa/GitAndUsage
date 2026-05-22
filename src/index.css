@@ -115,9 +115,9 @@ body {
   =========================================
 */
 .canvas-header {
-  height: 52px;
-  min-height: 52px;
-  padding: 0 20px;
+  height: 28px;
+  min-height: 28px;
+  padding: 0 10px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -125,42 +125,25 @@ body {
 }
 
 .canvas-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
   display: flex;
   align-items: center;
-  gap: 10px;
-}
-
-.canvas-subtitle {
-  font-size: 0.8rem;
-  font-family: var(--font-mono);
-  color: var(--text-muted);
-  text-transform: none;
-  font-weight: normal;
-  display: inline-flex;
-  align-items: center;
-}
-
-.canvas-subtitle::before {
-  content: "/";
-  margin: 0 8px;
-  color: rgba(255, 255, 255, 0.1);
 }
 
 /* Premium Open Folder Button */
 .open-folder-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   background: rgba(99, 102, 241, 0.08);
   border: 1px solid rgba(99, 102, 241, 0.15);
   color: #a5b4fc;
-  padding: 5px 12px;
-  border-radius: 6px;
-  font-size: 0.78rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.72rem;
   font-weight: 500;
   cursor: pointer;
   transition: var(--transition-smooth);
@@ -500,50 +483,51 @@ body {
 */
 .usage-tabs-vertical-container {
   position: absolute;
-  bottom: 24px;
-  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  right: 6px;
   z-index: 10;
 }
 
 .usage-tabs-vertical {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.03);
-  border-radius: 8px;
-  padding: 4px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  gap: 3px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+  padding: 3px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
 }
 
 .usage-tab-vertical-btn {
   background: transparent;
   border: none;
   color: var(--text-secondary);
-  padding: 8px 16px;
-  border-radius: 6px;
+  padding: 4px 6px;
+  border-radius: 4px;
   font-family: var(--font-sans);
-  font-size: 0.72rem;
+  font-size: 0.65rem;
   font-weight: 600;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
   cursor: pointer;
   transition: var(--transition-smooth);
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 8px;
-  min-width: 86px;
+  justify-content: center;
+  gap: 4px;
 }
 
 .usage-tab-vertical-btn:hover {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .usage-tab-vertical-btn.active {
-  background: rgba(99, 102, 241, 0.12);
+  background: rgba(99, 102, 241, 0.16);
   color: #c7d2fe;
-  box-shadow: 0 0 12px var(--accent-glow), inset 0 0 0 1px rgba(99, 102, 241, 0.25);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.2), inset 0 0 0 1px rgba(99, 102, 241, 0.3);
   font-weight: 700;
 }
 
