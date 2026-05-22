@@ -1,11 +1,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useTranslation } from "react-i18next";
 import { AppConfig, GitStatus, UsageSnapshot } from "./types";
 import { GitGraphPanel } from "./GitGraphPanel";
 import { UsagePanel } from "./UsagePanel";
 import { SettingsView } from "./SettingsView";
 
 function App() {
+  const { t } = useTranslation();
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [configLoading, setConfigLoading] = useState(true);
   const [configError, setConfigError] = useState<string | null>(null);
@@ -151,7 +153,7 @@ function App() {
       <div className="loading-overlay">
         <div className="spinner"></div>
         <p style={{ fontFamily: "var(--font-sans)", fontWeight: 500, letterSpacing: "1px", color: "var(--text-secondary)" }}>
-          INITIALIZING SYSTEM CONFIG
+          {t("app.initializing")}
         </p>
       </div>
     );
@@ -166,12 +168,12 @@ function App() {
           <line x1="12" y1="8" x2="12" y2="12" />
           <line x1="12" y1="16" x2="12.01" y2="16" />
         </svg>
-        <h2 style={{ marginTop: "16px", color: "var(--text-primary)" }}>Configuration Error</h2>
+        <h2 style={{ marginTop: "16px", color: "var(--text-primary)" }}>{t("app.configError")}</h2>
         <p style={{ color: "var(--text-secondary)", maxWidth: "450px", marginTop: "8px", fontSize: "0.95rem" }}>
-          Could not load the Tauri backend application configuration. Ensure the backend is active.
+          {t("app.configErrorDesc")}
         </p>
         <p style={{ color: "var(--color-danger)", fontFamily: "var(--font-mono)", fontSize: "0.85rem", marginTop: "16px" }}>
-          Details: {configError}
+          {t("app.details")} {configError}
         </p>
       </div>
     );
@@ -185,8 +187,8 @@ function App() {
       <button 
         className="settings-toggle-floating-btn"
         onClick={() => setShowSettings(true)}
-        title="Open Settings"
-        aria-label="Open Settings"
+        title={t("settings.title")}
+        aria-label={t("settings.title")}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="3" />

@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useTranslation } from "react-i18next";
 import { ProviderQuota, ProviderId } from "../../types";
 import { QuotaMeter } from "./QuotaMeter";
 import { SetupHint } from "./SetupHint";
 
 export const AiQuotaPanel: React.FC = () => {
+  const { t } = useTranslation();
   const [quotas, setQuotas] = useState<ProviderQuota[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState<Record<string, boolean>>({});
@@ -71,15 +73,6 @@ export const AiQuotaPanel: React.FC = () => {
     setExpandedProvider(prev => (prev === provider ? null : provider));
   };
 
-  const getReliabilityLabel = (rel: string) => {
-    switch (rel) {
-      case "high": return "Verified";
-      case "medium": return "Estimated";
-      case "low": return "Low Accuracy";
-      default: return "Unknown";
-    }
-  };
-
   return (
     <div className="ai-quota-panel" style={{
       display: "flex",
@@ -92,12 +85,14 @@ export const AiQuotaPanel: React.FC = () => {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "12px 16px",
+        padding: "0 10px",
+        height: "28px",
+        minHeight: "28px",
         borderBottom: "1px solid rgba(255, 255, 255, 0.03)",
         background: "rgba(0,0,0,0.15)"
       }}>
-        <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.5px", textTransform: "uppercase" }}>
-          CLI AI Quotas
+        <span style={{ fontSize: "0.72rem", fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.5px", textTransform: "uppercase" }}>
+          {t("quota.title")}
         </span>
         <button
           onClick={handleRefreshAll}
@@ -106,21 +101,21 @@ export const AiQuotaPanel: React.FC = () => {
             background: "rgba(255,255,255,0.03)",
             border: "1px solid rgba(255,255,255,0.05)",
             color: "var(--text-primary)",
-            padding: "4px 10px",
+            padding: "2px 8px",
             borderRadius: "4px",
-            fontSize: "0.72rem",
+            fontSize: "0.7rem",
             cursor: "pointer",
             display: "inline-flex",
             alignItems: "center",
-            gap: "5px",
+            gap: "4px",
             transition: "var(--transition-smooth)"
           }}
           className="refresh-all-btn"
         >
           <svg
             className={loading ? "spin" : ""}
-            width="12"
-            height="12"
+            width="11"
+            height="11"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -129,7 +124,7 @@ export const AiQuotaPanel: React.FC = () => {
           >
             <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
           </svg>
-          {loading ? "Syncing..." : "Sync All"}
+          {loading ? t("quota.syncing") : t("quota.syncAll")}
         </button>
       </div>
 
@@ -145,7 +140,7 @@ export const AiQuotaPanel: React.FC = () => {
           <div className="fallback-screen" style={{ height: "200px" }}>
             <div className="spinner"></div>
             <p style={{ marginTop: "12px", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
-              Scanning local CLI configs...
+              {t("quota.scanning")}
             </p>
           </div>
         ) : error && quotas.length === 0 ? (
@@ -231,7 +226,7 @@ export const AiQuotaPanel: React.FC = () => {
                         display: "inline-flex",
                         alignItems: "center"
                       }}
-                      title="Sync provider"
+                      title={t("quota.syncProvider")}
                     >
                       <svg
                         className={isRef ? "spin" : ""}
@@ -253,19 +248,19 @@ export const AiQuotaPanel: React.FC = () => {
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "0.72rem", color: "var(--text-secondary)" }}>
                     <span>
                       {!quota.cliInstalled 
-                        ? "Not Installed" 
+                        ? t("quota.status.notInstalled") 
                         : !quota.loggedIn 
-                          ? "Auth Required" 
+                          ? t("quota.status.authRequired") 
                           : primaryWindow 
                             ? `${primaryWindow.label}` 
-                            : "Authenticated"}
+                            : t("quota.status.authenticated")}
                     </span>
                     {quota.loggedIn && previewPercent !== undefined && (
                       <span style={{
                         color: previewPercent >= 50 ? "var(--color-ok)" : previewPercent >= 20 ? "var(--color-warning)" : "var(--color-danger)",
                         fontWeight: 600
                       }}>
-                        {Math.round(previewPercent)}% left
+                        {t("quota.status.left", { percent: Math.round(previewPercent) })}
                       </span>
                     )}
                   </div>
@@ -307,10 +302,15 @@ export const AiQuotaPanel: React.FC = () => {
                           marginTop: "6px"
                         }}>
                           <span>
-                            Source: {quota.source.toUpperCase().replace("_", " ")} ({getReliabilityLabel(quota.reliability)})
+                            {t("quota.source", {
+                              source: quota.source.toUpperCase().replace("_", " "),
+                              reliability: t(`quota.reliability.${quota.reliability}`, { defaultValue: quota.reliability })
+                            })}
                           </span>
                           <span>
-                            Synced: {new Date(quota.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {t("quota.synced", {
+                              time: new Date(quota.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                            })}
                           </span>
                         </div>
                       </>

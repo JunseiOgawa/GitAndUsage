@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { GitStatus } from "./types";
 import { invoke } from "@tauri-apps/api/core";
+import { useTranslation } from "react-i18next";
 
 interface GitGraphPanelProps {
   status: GitStatus | null;
@@ -35,6 +36,7 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
   repoPath,
   onRefresh,
 }) => {
+  const { t } = useTranslation();
   const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({});
   const [openBranchFolders, setOpenBranchFolders] = useState<Record<string, boolean>>({
     "Local": true,
@@ -366,28 +368,18 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
       {/* Top Header Section with Folder Open Button */}
       <div className="canvas-header" data-tauri-drag-region>
         <div className="canvas-title" data-tauri-drag-region>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="18" cy="18" r="3" />
-            <circle cx="6" cy="6" r="3" />
-            <circle cx="6" cy="18" r="3" />
-            <path d="M18 15V9a4 4 0 0 0-4-4H9" />
-            <line x1="6" y1="9" x2="6" y2="15" />
-          </svg>
-          Git workspace
-          {status && status.repoName && !isNotGitRepo && (
-            <span className="canvas-subtitle" data-tauri-drag-region>{status.repoName}</span>
-          )}
+          {status && status.repoName && !isNotGitRepo ? status.repoName : t("git.notARepo")}
         </div>
 
         <button 
           onClick={onOpenFolder}
           className="open-folder-btn"
-          title="Open Repository"
+          title={t("git.openFolder")}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
           </svg>
-          Open Folder
+          {t("git.openFolder")}
         </button>
       </div>
 
@@ -399,7 +391,7 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
             <button 
               className={`git-workspace-tab-btn ${activeTab === "branches" ? "active" : ""}`}
               onClick={() => setActiveTab("branches")}
-              title="Branches & Commit Graph"
+              title={`${t("git.branches")} & ${t("git.historyGraph")}`}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="6" y1="3" x2="6" y2="15" />
@@ -407,12 +399,12 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
                 <circle cx="6" cy="18" r="3" />
                 <path d="M18 9a9 9 0 0 1-9 9" />
               </svg>
-              <span className="tab-label">Branches</span>
+              <span className="tab-label">{t("git.branches")}</span>
             </button>
             <button 
               className={`git-workspace-tab-btn ${activeTab === "changes" ? "active" : ""}`}
               onClick={() => setActiveTab("changes")}
-              title={`Uncommitted Changes (${status?.files?.length || 0})`}
+              title={`${t("git.changes")} (${status?.files?.length || 0})`}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -421,7 +413,7 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
               {status?.files && status.files.length > 0 && (
                 <span className="tab-badge">{status.files.length}</span>
               )}
-              <span className="tab-label">Changes</span>
+              <span className="tab-label">{t("git.changes")}</span>
             </button>
           </div>
         )}
@@ -431,7 +423,7 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
           {loading && !status ? (
             <div className="fallback-screen">
               <div className="spinner"></div>
-              <p style={{ marginTop: "16px" }}>Analyzing Git workspace...</p>
+              <p style={{ marginTop: "16px" }}>{t("git.analyzing")}</p>
             </div>
           ) : error || isNotGitRepo ? (
             <div className="fallback-screen">
@@ -442,9 +434,9 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
                   <line x1="12" y1="17" x2="12.01" y2="17" />
                 </svg>
               </div>
-              <h3 style={{ marginBottom: "8px" }}>Not a Git Repository</h3>
+              <h3 style={{ marginBottom: "8px" }}>{t("git.notARepo")}</h3>
               <p className="fallback-text">
-                Configure a valid repository path or open a folder using the button above.
+                {t("git.notARepoDesc")}
               </p>
               {error && (
                 <p style={{ marginTop: "12px", color: "var(--color-danger)", fontSize: "0.85rem", fontFamily: "var(--font-mono)" }}>
@@ -458,7 +450,7 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
                 <div className="checkout-overlay">
                   <div className="spinner"></div>
                   <p style={{ marginTop: "12px", fontSize: "0.85rem", fontWeight: 500 }}>
-                    Switching branches...
+                    {t("git.switchingBranch")}
                   </p>
                 </div>
               )}
@@ -471,7 +463,7 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
                   {/* Left Column: Branch Tree Switcher */}
                   <div className="split-column tree-column branch-switcher-column">
                     <div className="column-header">
-                      <span className="column-header-title">Branches ({status.branches ? status.branches.length : 0})</span>
+                      <span className="column-header-title">{t("git.branchesCount", { count: status.branches ? status.branches.length : 0 })}</span>
                       <span className="git-branch-badge-pill">
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: "3px" }}>
                           <line x1="6" y1="3" x2="6" y2="15" />
@@ -490,7 +482,7 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
                         </div>
                       ) : (
                         <div className="tree-empty-state">
-                          <span>No branches found</span>
+                          <span>{t("git.noBranches")}</span>
                         </div>
                       )}
                     </div>
@@ -500,17 +492,17 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
                   <div className="split-column graph-column branch-graph-column">
                     <div className="column-header">
                       <div className="column-title-text">
-                        <span className="column-header-title">Commit History Graph</span>
+                        <span className="column-header-title">{t("git.historyGraph")}</span>
                         {status.upstream && (
                           <span className="git-upstream">
-                            via {status.upstream}
+                            {t("git.via", { upstream: status.upstream })}
                           </span>
                         )}
                       </div>
                       
                       <div style={{ display: "flex", gap: "6px" }}>
-                        {status.ahead > 0 && <span className="git-sync-badge ahead">+{status.ahead} ahead</span>}
-                        {status.behind > 0 && <span className="git-sync-badge behind">-{status.behind} behind</span>}
+                        {status.ahead > 0 && <span className="git-sync-badge ahead">{t("git.ahead", { count: status.ahead })}</span>}
+                        {status.behind > 0 && <span className="git-sync-badge behind">{t("git.behind", { count: status.behind })}</span>}
                       </div>
                     </div>
 
@@ -530,12 +522,12 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
                   <div className="split-column tree-column">
                     <div className="column-header">
                       <div className="column-title-text">
-                        <span className="column-header-title">Changes ({status.files ? status.files.length : 0})</span>
+                        <span className="column-header-title">{t("git.changes")} ({status.files ? status.files.length : 0})</span>
                         <div className="view-toggle-buttons">
                           <button 
                             className={`view-toggle-btn ${changesView === "tree" ? "active" : ""}`}
                             onClick={() => setChangesView("tree")}
-                            title="Tree View"
+                            title={t("git.treeView")}
                           >
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
@@ -544,7 +536,7 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
                           <button 
                             className={`view-toggle-btn ${changesView === "list" ? "active" : ""}`}
                             onClick={() => setChangesView("list")}
-                            title="Flat List View"
+                            title={t("git.flatListView")}
                           >
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                               <line x1="8" y1="6" x2="21" y2="6" />
@@ -583,7 +575,7 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
                           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1.5">
                             <polyline points="20 6 9 17 4 12" />
                           </svg>
-                          <span>No uncommitted changes</span>
+                          <span>{t("git.noChanges")}</span>
                         </div>
                       )}
                     </div>
@@ -592,7 +584,7 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
                   {/* Right Column: Git Graph (Consistency & Context) */}
                   <div className="split-column graph-column">
                     <div className="column-header">
-                      <span className="column-header-title">Commit history graph</span>
+                      <span className="column-header-title">{t("git.historyGraphChanges")}</span>
                       <span className="git-branch-badge" style={{ fontSize: "0.72rem", padding: "2px 6px" }}>
                         {status.currentBranch}
                       </span>

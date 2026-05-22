@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ProviderId } from "../../types";
 
 interface SetupHintProps {
@@ -8,6 +9,7 @@ interface SetupHintProps {
 }
 
 export const SetupHint: React.FC<SetupHintProps> = ({ provider, cliInstalled, loggedIn }) => {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
   const getHintData = () => {
@@ -17,28 +19,28 @@ export const SetupHint: React.FC<SetupHintProps> = ({ provider, cliInstalled, lo
           installCmd: "npm i -g @anthropic-ai/claude-code",
           loginCmd: "claude auth login",
           docsUrl: "https://docs.anthropic.com/claude/docs/claude-code",
-          description: "Claude Code is a CLI tool that enables agentic coding agent directly in your terminal.",
+          description: t("setup.claude.desc"),
         };
       case "codex":
         return {
           installCmd: "npm i -g codex-cli-tool", // Example install cmd
           loginCmd: "codex login",
           docsUrl: "https://codex.example.com",
-          description: "Codex CLI provides quick shell access to powerful code generators.",
+          description: t("setup.codex.desc"),
         };
       case "copilot":
         return {
           installCmd: "winget install GitHub.cli", // For Windows
           loginCmd: "gh auth login",
           docsUrl: "https://github.com/features/copilot",
-          description: "GitHub Copilot CLI connects with your GitHub account via standard gh command.",
+          description: t("setup.copilot.desc"),
         };
       case "opencode":
         return {
           installCmd: "npm i -g @opencode/cli @opencode/quota-cli",
           loginCmd: "opencode auth login",
           docsUrl: "https://opencode.example.com",
-          description: "OpenCode CLI is an open-source decentralized developer intelligence platform.",
+          description: t("setup.opencode.desc"),
         };
     }
   };
@@ -72,7 +74,7 @@ export const SetupHint: React.FC<SetupHintProps> = ({ provider, cliInstalled, lo
       {!cliInstalled && (
         <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
           <span style={{ color: "var(--color-warning)", fontWeight: 500 }}>
-            ⚠️ CLI is not installed or detected
+            {t("setup.cliNotDetected")}
           </span>
           <div className="cmd-box" style={{
             display: "flex",
@@ -102,7 +104,7 @@ export const SetupHint: React.FC<SetupHintProps> = ({ provider, cliInstalled, lo
                 outline: "none"
               }}
             >
-              Copy
+              {copied ? t("common.copied") : t("common.copy")}
             </button>
           </div>
         </div>
@@ -111,10 +113,10 @@ export const SetupHint: React.FC<SetupHintProps> = ({ provider, cliInstalled, lo
       {cliInstalled && !loggedIn && (
         <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
           <span style={{ color: "var(--color-warning)", fontWeight: 500 }}>
-            🔑 Authentication Required
+            {t("setup.authRequired")}
           </span>
           <p style={{ color: "var(--text-muted)", fontSize: "0.7rem" }}>
-            Run the following command in your terminal to sign in:
+            {t("setup.signInInstruction")}
           </p>
           <div className="cmd-box" style={{
             display: "flex",
@@ -144,7 +146,7 @@ export const SetupHint: React.FC<SetupHintProps> = ({ provider, cliInstalled, lo
                 outline: "none"
               }}
             >
-              {copied ? "Copied!" : "Copy"}
+              {copied ? t("common.copied") : t("common.copy")}
             </button>
           </div>
         </div>
