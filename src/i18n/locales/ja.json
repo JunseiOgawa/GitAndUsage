@@ -1,0 +1,130 @@
+{
+  "common": {
+    "loading": "読み込み中...",
+    "error": "エラー",
+    "copy": "コピー",
+    "copied": "コピー完了!",
+    "active": "有効",
+    "offline": "オフライン",
+    "failedToLoad": "読み込み失敗"
+  },
+  "settings": {
+    "title": "テレメトリ サブスクリプション設定",
+    "exitApp": "アプリ終了",
+    "cancel": "キャンセル",
+    "save": "保存",
+    "saving": "...",
+    "general": {
+      "title": "一般",
+      "repoPath": "リポジトリパス",
+      "repoPathPlaceholder": "リポジトリへのパス",
+      "heightRatio": "高さの比率",
+      "usageOnly": "使用量のみ表示モード",
+      "language": "言語"
+    },
+    "codex": {
+      "title": "Codex (ChatGPT)",
+      "plan": "契約プラン",
+      "account": "アカウント ID / メール",
+      "accountPlaceholder": "email@domain.com",
+      "token": "セッショントークン",
+      "tokenPlaceholder": "セッション認証情報"
+    },
+    "copilot": {
+      "title": "GitHub Copilot",
+      "plan": "契約プラン",
+      "account": "組織 / エンタープライズ",
+      "accountPlaceholder": "組織名",
+      "pat": "GitHub PAT",
+      "patPlaceholder": "ghp_..."
+    },
+    "claude": {
+      "title": "Claude",
+      "plan": "契約プラン",
+      "account": "アカウント / 組織 ID",
+      "accountPlaceholder": "アカウントの識別子",
+      "key": "Anthropic キー / ログ",
+      "keyPlaceholder": "sk-ant-... またはログのパス"
+    }
+  },
+  "app": {
+    "initializing": "システム構成を初期化中",
+    "configError": "設定読み込みエラー",
+    "configErrorDesc": "Tauri バックエンドアプリケーションの設定を読み込めませんでした。バックエンドが起動していることを確認してください。",
+    "details": "詳細:"
+  },
+  "git": {
+    "workspace": "Git ワークスペース",
+    "openFolder": "フォルダを開く",
+    "branches": "ブランチ",
+    "changes": "変更",
+    "analyzing": "Git ワークスペースを解析中...",
+    "notARepo": "Git リポジトリではありません",
+    "notARepoDesc": "有効なリポジトリパスを設定するか、上のボタンからフォルダを開いてください。",
+    "switchingBranch": "ブランチを切り替え中...",
+    "branchesCount": "ブランチ ({{count}})",
+    "historyGraph": "コミット履歴グラフ",
+    "historyGraphChanges": "コミット履歴グラフ",
+    "noBranches": "ブランチが見つかりません",
+    "treeView": "ツリー表示",
+    "flatListView": "リスト表示",
+    "noChanges": "未コミットの変更はありません",
+    "staged": "ステージ済み",
+    "modified": "変更あり",
+    "untracked": "追跡対象外",
+    "conflict": "競合",
+    "ahead": "+{{count}} コミット進んでいます",
+    "behind": "-{{count}} コミット遅れています",
+    "via": "上流: {{upstream}}"
+  },
+  "usage": {
+    "dragHandle": "ドラッグしてウィンドウを移動",
+    "telemetrySnapshots": "テレメトリ・スナップショット",
+    "cliQuotas": "CLI AI 使用制限",
+    "updating": "使用状況スナップショットを更新中...",
+    "noActiveTelemetry": "有効なテレメトリデータがありません",
+    "accountProfile": "アカウント情報",
+    "subscriptionTier": "契約プラン",
+    "noLimit": "制限なし",
+    "sourceLabel": "テレメトリ: {{provider}}",
+    "updated": "更新時刻: {{time}}"
+  },
+  "quota": {
+    "title": "CLI AI 使用制限",
+    "syncing": "同期中...",
+    "syncAll": "すべて同期",
+    "scanning": "ローカル CLI 設定をスキャン中...",
+    "syncProvider": "プロバイダを同期",
+    "reliability": {
+      "high": "検証済み",
+      "medium": "推測値",
+      "low": "低精度",
+      "unknown": "不明"
+    },
+    "status": {
+      "notInstalled": "未インストール",
+      "authRequired": "認証が必要",
+      "authenticated": "認証済み",
+      "left": "残り {{percent}}%"
+    },
+    "source": "ソース: {{source}} ({{reliability}})",
+    "synced": "同期時刻: {{time}}"
+  },
+  "setup": {
+    "claude": {
+      "desc": "Claude Code は、ターミナル上で直接エージェント開発を可能にするCLIツールです。"
+    },
+    "codex": {
+      "desc": "Codex CLI は、強力なコード生成AI機能にシェルから素早くアクセスできるCLIツールです。"
+    },
+    "copilot": {
+      "desc": "GitHub Copilot CLI は、標準的な gh コマンドを使用して GitHub アカウントと接続し利用できます。"
+    },
+    "opencode": {
+      "desc": "OpenCode CLI は、オープンソースで分散型の開発者インテリジェンス・プラットフォームです。"
+    },
+    "cliNotDetected": "⚠️ CLIがインストールされていないか、検出できませんでした",
+    "authRequired": "🔑 認証が必要です",
+    "signInInstruction": "ターミナルで次のコマンドを実行してサインインしてください:"
+  }
+}

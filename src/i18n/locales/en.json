@@ -1,0 +1,130 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "active": "active",
+    "offline": "Offline",
+    "failedToLoad": "Failed to Load"
+  },
+  "settings": {
+    "title": "Telemetry subscription profiles",
+    "exitApp": "Exit App",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "...",
+    "general": {
+      "title": "General",
+      "repoPath": "Repo Path",
+      "repoPathPlaceholder": "Path to repository",
+      "heightRatio": "Height Ratio",
+      "usageOnly": "Usage Only Mode",
+      "language": "Language"
+    },
+    "codex": {
+      "title": "Codex (ChatGPT)",
+      "plan": "Subscription Plan",
+      "account": "Account ID / Email",
+      "accountPlaceholder": "email@domain.com",
+      "token": "Session Token",
+      "tokenPlaceholder": "Session credential"
+    },
+    "copilot": {
+      "title": "GitHub Copilot",
+      "plan": "Subscription Plan",
+      "account": "Org / Enterprise",
+      "accountPlaceholder": "Organization name",
+      "pat": "GitHub PAT",
+      "patPlaceholder": "ghp_..."
+    },
+    "claude": {
+      "title": "Claude",
+      "plan": "Subscription Plan",
+      "account": "Account / Org ID",
+      "accountPlaceholder": "Account identity",
+      "key": "Anthropic Key / Log",
+      "keyPlaceholder": "sk-ant-... or log path"
+    }
+  },
+  "app": {
+    "initializing": "INITIALIZING SYSTEM CONFIG",
+    "configError": "Configuration Error",
+    "configErrorDesc": "Could not load the Tauri backend application configuration. Ensure the backend is active.",
+    "details": "Details:"
+  },
+  "git": {
+    "workspace": "Git workspace",
+    "openFolder": "Open Folder",
+    "branches": "Branches",
+    "changes": "Changes",
+    "analyzing": "Analyzing Git workspace...",
+    "notARepo": "Not a Git Repository",
+    "notARepoDesc": "Configure a valid repository path or open a folder using the button above.",
+    "switchingBranch": "Switching branches...",
+    "branchesCount": "Branches ({{count}})",
+    "historyGraph": "Commit History Graph",
+    "historyGraphChanges": "Commit history graph",
+    "noBranches": "No branches found",
+    "treeView": "Tree View",
+    "flatListView": "Flat List View",
+    "noChanges": "No uncommitted changes",
+    "staged": "Staged",
+    "modified": "Modified",
+    "untracked": "Untracked",
+    "conflict": "Conflict",
+    "ahead": "+{{count}} ahead",
+    "behind": "-{{count}} behind",
+    "via": "via {{upstream}}"
+  },
+  "usage": {
+    "dragHandle": "Drag to Move Window",
+    "telemetrySnapshots": "Telemetry Snapshots",
+    "cliQuotas": "CLI AI Quotas",
+    "updating": "Updating usage snapshots...",
+    "noActiveTelemetry": "No active telemetry data",
+    "accountProfile": "Account profile",
+    "subscriptionTier": "Subscription tier",
+    "noLimit": "No Limit",
+    "sourceLabel": "Telemetry: {{provider}}",
+    "updated": "Updated {{time}}"
+  },
+  "quota": {
+    "title": "CLI AI Quotas",
+    "syncing": "Syncing...",
+    "syncAll": "Sync All",
+    "scanning": "Scanning local CLI configs...",
+    "syncProvider": "Sync provider",
+    "reliability": {
+      "high": "Verified",
+      "medium": "Estimated",
+      "low": "Low Accuracy",
+      "unknown": "Unknown"
+    },
+    "status": {
+      "notInstalled": "Not Installed",
+      "authRequired": "Auth Required",
+      "authenticated": "Authenticated",
+      "left": "{{percent}}% left"
+    },
+    "source": "Source: {{source}} ({{reliability}})",
+    "synced": "Synced: {{time}}"
+  },
+  "setup": {
+    "claude": {
+      "desc": "Claude Code is a CLI tool that enables agentic coding agent directly in your terminal."
+    },
+    "codex": {
+      "desc": "Codex CLI provides quick shell access to powerful code generators."
+    },
+    "copilot": {
+      "desc": "GitHub Copilot CLI connects with your GitHub account via standard gh command."
+    },
+    "opencode": {
+      "desc": "OpenCode CLI is an open-source decentralized developer intelligence platform."
+    },
+    "cliNotDetected": "⚠️ CLI is not installed or detected",
+    "authRequired": "🔑 Authentication Required",
+    "signInInstruction": "Run the following command in your terminal to sign in:"
+  }
+}
