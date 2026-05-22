@@ -98,6 +98,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             git::get_git_status,
+            git::get_commit_log,
+            git::get_commit_details,
             git::open_folder_dialog,
             git::checkout_branch,
             usage::get_usage_snapshot,
