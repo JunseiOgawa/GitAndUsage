@@ -20,17 +20,42 @@ pub fn run() {
 
             let height = (monitor.size().height as f64 * height_ratio) as u32;
 
-            // Apply sizing and positioning based on usage_only configuration
+            // Apply sizing and positioning based on usage_only configuration and dock position
             if config.usage_only {
                 let scale_factor = monitor.scale_factor();
-                let width = (380.0 * scale_factor) as u32;
-                let x = monitor.size().width - width;
-                window
-                    .set_size(Size::Physical(PhysicalSize { width, height }))
-                    .unwrap();
-                window
-                    .set_position(Position::Physical(PhysicalPosition { x: x as i32, y: 0 }))
-                    .unwrap();
+                let dock = config.dock_position.clone().unwrap_or_else(|| "right".to_string());
+                
+                match dock.as_str() {
+                    "left" => {
+                        let width = (380.0 * scale_factor) as u32;
+                        window.set_size(Size::Physical(PhysicalSize { width, height })).unwrap();
+                        window.set_position(Position::Physical(PhysicalPosition { x: 0, y: 0 })).unwrap();
+                    }
+                    "top" => {
+                        let width = monitor.size().width;
+                        let bar_height = (96.0 * scale_factor) as u32;
+                        window.set_size(Size::Physical(PhysicalSize { width, height: bar_height })).unwrap();
+                        window.set_position(Position::Physical(PhysicalPosition { x: 0, y: 0 })).unwrap();
+                    }
+                    "bottom" => {
+                        let width = monitor.size().width;
+                        let bar_height = (96.0 * scale_factor) as u32;
+                        let y = monitor.size().height - bar_height;
+                        window.set_size(Size::Physical(PhysicalSize { width, height: bar_height })).unwrap();
+                        window.set_position(Position::Physical(PhysicalPosition { x: 0, y: y as i32 })).unwrap();
+                    }
+                    "floating" => {
+                        let width = (380.0 * scale_factor) as u32;
+                        window.set_size(Size::Physical(PhysicalSize { width, height })).unwrap();
+                        // In floating mode, do not force a position at startup, or center it
+                    }
+                    _ => { // "right"
+                        let width = (380.0 * scale_factor) as u32;
+                        let x = monitor.size().width - width;
+                        window.set_size(Size::Physical(PhysicalSize { width, height })).unwrap();
+                        window.set_position(Position::Physical(PhysicalPosition { x: x as i32, y: 0 })).unwrap();
+                    }
+                }
             } else {
                 let width = monitor.size().width;
                 window

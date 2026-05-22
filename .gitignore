@@ -24,6 +24,6 @@ dist-ssr
 *.sw?
 
 # Custom
-docs/requirements.md
+docs/
 config.toml
 usage.json

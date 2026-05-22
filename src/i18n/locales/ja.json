@@ -32,29 +32,11 @@
       "opacity": "ウィンドウ透明度",
       "accentColor": "テーマカラー"
     },
-    "codex": {
-      "title": "Codex (ChatGPT)",
-      "plan": "契約プラン",
-      "account": "アカウント ID / メール",
-      "accountPlaceholder": "email@domain.com",
-      "token": "セッショントークン",
-      "tokenPlaceholder": "セッション認証情報"
-    },
-    "copilot": {
-      "title": "GitHub Copilot",
-      "plan": "契約プラン",
-      "account": "組織 / エンタープライズ",
-      "accountPlaceholder": "組織名",
-      "pat": "GitHub PAT",
-      "patPlaceholder": "ghp_..."
-    },
-    "claude": {
-      "title": "Claude",
-      "plan": "契約プラン",
-      "account": "アカウント / 組織 ID",
-      "accountPlaceholder": "アカウントの識別子",
-      "key": "Anthropic キー / ログ",
-      "keyPlaceholder": "sk-ant-... またはログのパス"
+    "about": {
+      "title": "アプリについて",
+      "appName": "Git & CLI Usage Dashboard",
+      "version": "バージョン 1.0.0",
+      "desc": "リアルタイムのGitコミット履歴の視覚的グラフ、未コミット変更ファイルツリー、および各種CLI AI利用制限テレメトリを極小のプレミアムなインターフェースで美しく一元管理する開発者向けダッシュボードアプリケーションです。"
     }
   },
   "app": {

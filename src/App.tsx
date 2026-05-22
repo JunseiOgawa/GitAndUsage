@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow, currentMonitor, primaryMonitor } from "@tauri-apps/api/window";
 import { useTranslation } from "react-i18next";
 import { AppConfig, GitStatus, UsageSnapshot } from "./types";
 import { GitGraphPanel } from "./GitGraphPanel";
@@ -111,6 +112,71 @@ function App() {
     }
   };
 
+  const handleDockChange = async (dock: "left" | "right" | "top" | "bottom" | "floating") => {
+    if (!config) return;
+    const updatedConfig: AppConfig = { ...config, dockPosition: dock };
+    setConfig(updatedConfig);
+    try {
+      await Promise.all([
+        invoke("save_app_config", { config: updatedConfig }),
+        invoke("set_window_size_mode", { settingsOpen: false, usageOnly: config.usageOnly }),
+      ]);
+    } catch (err) {
+      console.error("Failed to update dock position:", err);
+      setConfig(config);
+    }
+  };
+
+  // Drag-to-Snap (Magnetic snap) implementation
+  useEffect(() => {
+    if (!config || !config.usageOnly || isPositionLocked) return;
+
+    let debounceTimer: any = null;
+    let unlisten: (() => void) | null = null;
+
+    const setupListener = async () => {
+      const appWindow = getCurrentWindow();
+      
+      unlisten = await appWindow.onMoved(async () => {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        
+        debounceTimer = setTimeout(async () => {
+          const monitor = (await currentMonitor()) || (await primaryMonitor());
+          if (!monitor) return;
+          
+          const scaleFactor = monitor.scaleFactor;
+          const monitorSize = monitor.size;
+          const pos = await appWindow.outerPosition();
+          
+          const threshold = 60 * scaleFactor; // 60 pixels edge snapping threshold
+          
+          let targetDock: "left" | "right" | "top" | "bottom" | null = null;
+          
+          if (pos.x <= threshold) {
+            targetDock = "left";
+          } else if (pos.x >= monitorSize.width - (380 * scaleFactor) - threshold) {
+            targetDock = "right";
+          } else if (pos.y <= threshold) {
+            targetDock = "top";
+          } else if (pos.y >= monitorSize.height - (96 * scaleFactor) - threshold) {
+            targetDock = "bottom";
+          }
+          
+          if (targetDock && config.dockPosition !== targetDock) {
+            handleDockChange(targetDock);
+          }
+        }, 400); // 400ms after move stops
+      });
+    };
+
+    setupListener();
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      if (unlisten) unlisten();
+    };
+  }, [config?.usageOnly, isPositionLocked, config?.dockPosition, config]);
+
   const handleExitApp = () => {
     invoke("exit_app").catch((err) => {
       console.error("Failed to exit app:", err);
@@ -187,6 +253,11 @@ function App() {
     setUsageLoading(true);
     fetchGitStatus(newConfig.repoPath);
     fetchUsageSnapshots(newConfig.usageJsonPath, newConfig.enabledProviders);
+  };
+
+  // Called while the user drags the opacity slider — update CSS immediately without saving
+  const handlePreviewOpacity = (opacity: number) => {
+    document.documentElement.style.setProperty("--window-opacity", (opacity / 100).toString());
   };
 
   // Dynamic window resizing when settings open/close
@@ -334,6 +405,7 @@ function App() {
         isUsageOnly={isUsageOnly}
         isPositionLocked={isPositionLocked}
         onToggleLock={handleToggleLock}
+        onDockChange={handleDockChange}
       />
 
 
@@ -342,6 +414,7 @@ function App() {
           config={config} 
           onClose={() => setShowSettings(false)}
           onSave={handleSaveSettings}
+          onPreviewOpacity={handlePreviewOpacity}
         />
       )}
     </main>

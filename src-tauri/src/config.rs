@@ -16,6 +16,7 @@ pub struct AppConfig {
     pub usage_only: bool,
     pub accent_color: Option<String>,
     pub window_opacity: Option<u32>,
+    pub dock_position: Option<String>,
 }
 
 impl Default for AppConfig {
@@ -39,6 +40,7 @@ impl Default for AppConfig {
             usage_only: false,
             accent_color: Some("#6366f1".to_string()),
             window_opacity: Some(90),
+            dock_position: Some("right".to_string()),
         }
     }
 }
@@ -199,6 +201,7 @@ mod tests {
             usage_only: true,
             accent_color: Some("#6366f1".to_string()),
             window_opacity: Some(90),
+            dock_position: Some("right".to_string()),
         };
 
         let json_value = serde_json::to_value(&config).unwrap();
@@ -213,6 +216,7 @@ mod tests {
         assert!(!json_map.contains_key("usage_only"));
         assert!(!json_map.contains_key("accent_color"));
         assert!(!json_map.contains_key("window_opacity"));
+        assert!(!json_map.contains_key("dock_position"));
  
         // Verify camelCase keys exist and match
         assert_eq!(json_map.get("repoPath").unwrap().as_str().unwrap(), "/test/repo");
@@ -222,5 +226,6 @@ mod tests {
         assert_eq!(json_map.get("accentColor").unwrap().as_str().unwrap(), "#6366f1");
         assert_eq!(json_map.get("windowOpacity").unwrap().as_u64().unwrap(), 90);
         assert_eq!(json_map.get("usageOnly").unwrap().as_bool().unwrap(), true);
+        assert_eq!(json_map.get("dockPosition").unwrap().as_str().unwrap(), "right");
     }
 }

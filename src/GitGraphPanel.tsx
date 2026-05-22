@@ -1018,10 +1018,32 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
                     style={{ flex: isNotGitRepo ? "1 1 100%" : `0 0 ${branchPct}%`, maxWidth: isNotGitRepo ? "100%" : `${branchPct}%` }}
                   >
                     <div className="column-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", overflow: "hidden" }}>
                         <span className="column-header-title">{t("git.branches")}</span>
+                        
+                        {/* Display repository/folder name directly next to 'Branches' when open */}
+                        {!isNotGitRepo && status?.repoName && (
+                          <span className="git-repo-name-badge" style={{ 
+                            fontSize: "0.68rem", 
+                            color: "var(--text-secondary)", 
+                            background: "rgba(255, 255, 255, 0.03)", 
+                            border: "1px solid rgba(255, 255, 255, 0.05)", 
+                            padding: "1px 5px", 
+                            borderRadius: "3px",
+                            fontFamily: "var(--font-sans)",
+                            fontWeight: 500,
+                            maxWidth: "110px",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap"
+                          }} title={status.repoName}>
+                            {status.repoName}
+                          </span>
+                        )}
+
+                        {/* Display active branch badge directly next to Branches */}
                         {!isNotGitRepo && status?.currentBranch && (
-                          <span className="git-branch-badge-pill" style={{ marginLeft: "4px" }}>
+                          <span className="git-branch-badge-pill" style={{ marginLeft: "2px" }}>
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: "3px" }}>
                               <line x1="6" y1="3" x2="6" y2="15" />
                               <circle cx="18" cy="6" r="3" />
@@ -1031,19 +1053,34 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
                             {status.currentBranch}
                           </span>
                         )}
+
+                        {/* Display Open Folder button right next to Branches when not a repo */}
+                        {isNotGitRepo && (
+                          <button 
+                            onClick={onOpenFolder}
+                            className="open-folder-btn"
+                            title={t("git.openFolder")}
+                            style={{ margin: 0, padding: "2px 6px", fontSize: "0.7rem", height: "18px" }}
+                          >
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: "3px" }}>
+                              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                            </svg>
+                            {t("git.openFolder")}
+                          </button>
+                        )}
                       </div>
 
-                      {(isNotGitRepo || repoPath) && (
+                      {/* Display a small Open Folder button on the far right if a repo is open */}
+                      {!isNotGitRepo && (
                         <button 
                           onClick={onOpenFolder}
-                          className="open-folder-btn"
+                          className="open-folder-btn icon-only"
                           title={t("git.openFolder")}
-                          style={{ margin: 0 }}
+                          style={{ margin: 0, padding: "4px", display: "flex", alignItems: "center", justifyContent: "center" }}
                         >
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: "4px" }}>
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                           </svg>
-                          {t("git.openFolder")}
                         </button>
                       )}
                     </div>
@@ -1099,10 +1136,12 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
                           </div>
                         </div>
 
-                    <div className="graph-code-view" style={{ padding: 0, overflow: "auto" }}>
-                      <HorizontalCommitGraph repoPath={repoPath} commits={sharedCommits} loading={commitsLoading} />
-                    </div>
-                  </div>
+                        <div className="graph-code-view" style={{ padding: 0, overflow: "auto" }}>
+                          <HorizontalCommitGraph repoPath={repoPath} commits={sharedCommits} loading={commitsLoading} />
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </>
               ) : (
                 /* =========================================

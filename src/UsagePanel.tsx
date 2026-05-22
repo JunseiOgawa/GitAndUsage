@@ -13,6 +13,7 @@ interface UsagePanelProps {
   isUsageOnly: boolean;
   isPositionLocked: boolean;
   onToggleLock: () => void;
+  onDockChange?: (dock: "left" | "right" | "top" | "bottom" | "floating") => void;
 }
 
 export const UsagePanel: React.FC<UsagePanelProps> = ({
@@ -23,6 +24,7 @@ export const UsagePanel: React.FC<UsagePanelProps> = ({
   isUsageOnly,
   isPositionLocked,
   onToggleLock,
+  onDockChange,
 }) => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<string>("codex");
@@ -114,11 +116,59 @@ export const UsagePanel: React.FC<UsagePanelProps> = ({
     (q) => q.provider.toLowerCase() === activeTab.toLowerCase()
   );
 
+  const dockPosition = config?.dockPosition || "right";
+  const isHorizontal = isUsageOnly && (dockPosition === "top" || dockPosition === "bottom");
+
   const tabs = [
     { id: "codex", label: "Codex" },
     { id: "copilot", label: "Copilot" },
     { id: "claude", label: "Claude" }
   ];
+
+  const renderHorizontalQuotas = () => {
+    const activeQuotas = quotas.filter(q => {
+      if (config?.enabledProviders && config.enabledProviders.length > 0) {
+        return config.enabledProviders.includes(q.provider);
+      }
+      return true;
+    });
+
+    return (
+      <div className="usage-horizontal-container" style={{ display: "flex", flex: 1, flexDirection: "row", gap: "24px", alignItems: "center", justifyContent: "space-around", width: "100%", height: "100%" }}>
+        {activeQuotas.map((q) => {
+          const isCopilot = q.provider.toLowerCase() === "copilot";
+          const dailyWindow = q.windows.find(w => w.id === "5h" || w.id === "primary");
+          const weeklyWindow = q.windows.find(w => w.id === "7d" || w.id === "secondary");
+
+          if (!q.cliInstalled || !q.loggedIn) {
+            return (
+              <div key={q.provider} className="usage-horizontal-card offline" style={{ display: "flex", flexDirection: "column", gap: "2px", opacity: 0.5 }}>
+                <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)" }}>{q.displayName}</span>
+                <span style={{ fontSize: "0.6rem", color: "var(--text-muted)" }}>Offline</span>
+              </div>
+            );
+          }
+
+          return (
+            <div key={q.provider} className="usage-horizontal-card" style={{ display: "flex", flexDirection: "column", gap: "4px", flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--accent-color)" }}>{q.displayName}</span>
+                {q.accountLabel && (
+                  <span style={{ fontSize: "0.58rem", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {q.accountLabel}
+                  </span>
+                )}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                {renderQuotaBar(t("Daily", { defaultValue: "Daily" }), dailyWindow, isCopilot)}
+                {renderQuotaBar(t("Weekly", { defaultValue: "Weekly" }), weeklyWindow, isCopilot)}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   const renderQuotaBar = (label: string, w?: QuotaWindow, isUnlimited = false) => {
     const percent = isUnlimited ? 100 : w ? getPercentage(w) : undefined;
@@ -232,12 +282,12 @@ export const UsagePanel: React.FC<UsagePanelProps> = ({
   };
 
   return (
-    <div className="right-panel" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <div className={`right-panel ${isHorizontal ? "horizontal-dock-layout" : ""}`} style={{ display: "flex", flexDirection: "column", height: "100%" }}>
 
-      <div style={{ display: "flex", flex: 1, minHeight: 0, flexDirection: "row" }}>
+      <div style={{ display: "flex", flex: 1, minHeight: 0, flexDirection: isHorizontal ? "row" : "row", height: "100%" }}>
         <div
           className="usage-viewport"
-          style={{ flex: 1, minWidth: 0, padding: "16px 14px", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", cursor: (isUsageOnly && !isPositionLocked) ? "move" : undefined }}
+          style={{ flex: 1, minWidth: 0, padding: isHorizontal ? "6px 16px" : "16px 14px", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", cursor: (isUsageOnly && !isPositionLocked) ? "move" : undefined }}
           onMouseDown={handleDragMouseDown}
         >
           {loadingQuotas && quotas.length === 0 ? (
@@ -257,45 +307,113 @@ export const UsagePanel: React.FC<UsagePanelProps> = ({
               <h4 style={{ marginBottom: "4px" }}>{t("common.failedToLoad")}</h4>
               <p className="fallback-text" style={{ fontSize: "0.75rem" }}>{quotasError}</p>
             </div>
+          ) : isHorizontal ? (
+            renderHorizontalQuotas()
           ) : (
             renderCardContent()
           )}
         </div>
 
-        {/* Vertical tab strip + lock indicator */}
+        {/* Vertical or Horizontal tab/control strip */}
         <div
-          className="usage-tabs-vertical-container"
-          style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", alignItems: "center", padding: "6px", paddingTop: "32px", cursor: (isUsageOnly && !isPositionLocked) ? "move" : undefined }}
+          className={isHorizontal ? "usage-tabs-horizontal-container" : "usage-tabs-vertical-container"}
+          style={isHorizontal ? {
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            padding: "4px 12px",
+            borderLeft: "1px solid rgba(255, 255, 255, 0.04)",
+            background: "rgba(0, 0, 0, 0.18)",
+            gap: "8px",
+            height: "100%"
+          } : {
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: "6px",
+            paddingTop: "32px",
+            cursor: (isUsageOnly && !isPositionLocked) ? "move" : undefined
+          }}
           onMouseDown={handleDragMouseDown}
         >
-          <div className="usage-tabs-vertical">
-            {tabs.map((tab) => {
-              const isActive = activeTab === tab.id;
-              const quota = quotas.find(q => q.provider.toLowerCase() === tab.id);
-              const hasData = quota && quota.loggedIn;
-              return (
-                <button
-                  key={tab.id}
-                  className={`usage-tab-vertical-btn ${isActive ? "active" : ""}`}
-                  onClick={() => setActiveTab(tab.id)}
-                >
-                  {tab.label}
-                  {hasData && <span className="tab-indicator-dot" />}
-                </button>
-              );
-            })}
-          </div>
+          {!isHorizontal && (
+            <div className="usage-tabs-vertical">
+              {tabs.map((tab) => {
+                const isActive = activeTab === tab.id;
+                const quota = quotas.find(q => q.provider.toLowerCase() === tab.id);
+                const hasData = quota && quota.loggedIn;
+                return (
+                  <button
+                    key={tab.id}
+                    className={`usage-tab-vertical-btn ${isActive ? "active" : ""}`}
+                    onClick={() => setActiveTab(tab.id)}
+                  >
+                    {tab.label}
+                    {hasData && <span className="tab-indicator-dot" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
-          {/* Bottom actions: refresh + lock — only in usage-only mode */}
+          {/* Actions: refresh + lock + docking buttons */}
           {config?.usageOnly && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "4px", alignItems: "center" }}>
-              {/* Refresh button — styled same as lock button */}
+            <div style={{ display: "flex", flexDirection: isHorizontal ? "row" : "column", gap: "6px", alignItems: "center" }}>
+              
+              {/* Quick Dock Controller Grid */}
+              <div className={`quick-dock-grid ${isHorizontal ? "horizontal" : "vertical"}`} style={{ display: "flex", gap: "2px" }}>
+                <button
+                  className={`quick-dock-btn ${dockPosition === "left" ? "active" : ""}`}
+                  onClick={() => onDockChange?.("left")}
+                  title={t("dock.left", { defaultValue: "Dock Left" })}
+                  aria-label="Dock Left"
+                >
+                  ←
+                </button>
+                <button
+                  className={`quick-dock-btn ${dockPosition === "top" ? "active" : ""}`}
+                  onClick={() => onDockChange?.("top")}
+                  title={t("dock.top", { defaultValue: "Dock Top" })}
+                  aria-label="Dock Top"
+                >
+                  ↑
+                </button>
+                <button
+                  className={`quick-dock-btn ${dockPosition === "bottom" ? "active" : ""}`}
+                  onClick={() => onDockChange?.("bottom")}
+                  title={t("dock.bottom", { defaultValue: "Dock Bottom" })}
+                  aria-label="Dock Bottom"
+                >
+                  ↓
+                </button>
+                <button
+                  className={`quick-dock-btn ${dockPosition === "right" ? "active" : ""}`}
+                  onClick={() => onDockChange?.("right")}
+                  title={t("dock.right", { defaultValue: "Dock Right" })}
+                  aria-label="Dock Right"
+                >
+                  →
+                </button>
+                <button
+                  className={`quick-dock-btn ${dockPosition === "floating" ? "active" : ""}`}
+                  onClick={() => onDockChange?.("floating")}
+                  title={t("dock.floating", { defaultValue: "Float Window" })}
+                  aria-label="Float Window"
+                  style={{ fontWeight: "bold" }}
+                >
+                  ✥
+                </button>
+              </div>
+
+              {/* Refresh button */}
               <button
                 className={`position-lock-btn ${isRefreshing ? "locked" : "unlocked"}`}
                 onClick={loadQuotas}
                 title={t("usage.refresh")}
                 aria-label={t("usage.refresh")}
                 disabled={isRefreshing}
+                style={isHorizontal ? { marginTop: 0 } : undefined}
               >
                 <svg
                   width="10"
@@ -321,6 +439,7 @@ export const UsagePanel: React.FC<UsagePanelProps> = ({
                 onClick={onToggleLock}
                 title={isPositionLocked ? t("lock.unlockTooltip") : t("lock.lockTooltip")}
                 aria-label={isPositionLocked ? t("lock.unlockTooltip") : t("lock.lockTooltip")}
+                style={isHorizontal ? { marginTop: 0 } : undefined}
               >
                 {isPositionLocked ? (
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

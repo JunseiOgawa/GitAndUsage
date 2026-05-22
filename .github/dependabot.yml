@@ -1,0 +1,17 @@
+version: 2
+updates:
+  # Monitor GitHub Actions updates
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      github-actions:
+        patterns:
+          - "*" # Group all updates into a single PR to reduce clutter
+
+  # Monitor frontend dependencies (npm package-ecosystem is used for Bun package.json)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"

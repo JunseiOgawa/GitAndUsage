@@ -32,29 +32,11 @@
       "opacity": "Window Opacity",
       "accentColor": "Theme Color"
     },
-    "codex": {
-      "title": "Codex (ChatGPT)",
-      "plan": "Subscription Plan",
-      "account": "Account ID / Email",
-      "accountPlaceholder": "email@domain.com",
-      "token": "Session Token",
-      "tokenPlaceholder": "Session credential"
-    },
-    "copilot": {
-      "title": "GitHub Copilot",
-      "plan": "Subscription Plan",
-      "account": "Org / Enterprise",
-      "accountPlaceholder": "Organization name",
-      "pat": "GitHub PAT",
-      "patPlaceholder": "ghp_..."
-    },
-    "claude": {
-      "title": "Claude",
-      "plan": "Subscription Plan",
-      "account": "Account / Org ID",
-      "accountPlaceholder": "Account identity",
-      "key": "Anthropic Key / Log",
-      "keyPlaceholder": "sk-ant-... or log path"
+    "about": {
+      "title": "About App",
+      "appName": "Git & CLI Usage Dashboard",
+      "version": "Version 1.0.0",
+      "desc": "A unified, beautiful developer desktop dashboard that provides real-time Git commit visual graphs, uncommitted change trees, and CLI AI quota usage telemetry tracking in a premium, compact interface."
     }
   },
   "app": {

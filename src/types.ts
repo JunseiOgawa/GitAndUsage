@@ -41,6 +41,7 @@ export interface AppConfig {
   claudeKey?: string;
   accentColor?: string;
   windowOpacity?: number;
+  dockPosition?: "left" | "right" | "top" | "bottom" | "floating";
 }
 
 export type ProviderId = "claude" | "codex" | "copilot" | "opencode";
