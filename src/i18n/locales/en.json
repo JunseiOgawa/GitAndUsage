@@ -97,7 +97,9 @@
     "subscriptionTier": "Subscription tier",
     "noLimit": "No Limit",
     "sourceLabel": "Telemetry: {{provider}}",
-    "updated": "Updated {{time}}"
+    "updated": "Updated {{time}}",
+    "refreshing": "Updating...",
+    "refresh": "Refresh"
   },
   "quota": {
     "title": "CLI AI Quotas",
@@ -118,7 +120,12 @@
       "left": "{{percent}}% left"
     },
     "source": "Source: {{source}} ({{reliability}})",
-    "synced": "Synced: {{time}}"
+    "synced": "Synced: {{time}}",
+    "resetIn": "Resets in {{time}}",
+    "resetInDays": "{{d}}d {{h}}h {{m}}m",
+    "resetInHours": "{{h}}h {{m}}m",
+    "resetInMinutes": "{{m}}m",
+    "resetInLessThanMinute": "< 1m"
   },
   "setup": {
     "claude": {
@@ -136,5 +143,11 @@
     "cliNotDetected": "⚠️ CLI is not installed or detected",
     "authRequired": "🔑 Authentication Required",
     "signInInstruction": "Run the following command in your terminal to sign in:"
+  },
+  "lock": {
+    "locked": "LOCKED",
+    "unlocked": "FREE",
+    "lockTooltip": "Lock window position",
+    "unlockTooltip": "Unlock window position"
   }
 }

@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { UsageSnapshot, AppConfig, ProviderQuota, QuotaWindow } from "./types";
 import { SetupHint } from "./features/ai-quota/SetupHint";
 
@@ -9,6 +10,9 @@ interface UsagePanelProps {
   loading: boolean;
   error: string | null;
   config: AppConfig | null;
+  isUsageOnly: boolean;
+  isPositionLocked: boolean;
+  onToggleLock: () => void;
 }
 
 export const UsagePanel: React.FC<UsagePanelProps> = ({
@@ -16,32 +20,55 @@ export const UsagePanel: React.FC<UsagePanelProps> = ({
   loading: _loading,
   error: _error,
   config,
+  isUsageOnly,
+  isPositionLocked,
+  onToggleLock,
 }) => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<string>("codex");
-  
-  const [quotas, setQuotas] = useState<ProviderQuota[]>([]);
-  const [loadingQuotas, setLoadingQuotas] = useState<boolean>(true);
-  const [quotasError, setQuotasError] = useState<string | null>(null);
 
-  const loadQuotas = async () => {
+  // Stale-while-revalidate: keep last known quotas while refreshing in background
+  const [quotas, setQuotas] = useState<ProviderQuota[]>([]);
+  const [loadingQuotas, setLoadingQuotas] = useState<boolean>(true); // only true on first load
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [quotasError, setQuotasError] = useState<string | null>(null);
+  const isFirstLoad = useRef(true);
+
+  const loadQuotas = useCallback(async () => {
+    const firstLoad = isFirstLoad.current;
+    if (firstLoad) {
+      setLoadingQuotas(true);
+    } else {
+      setIsRefreshing(true);
+    }
+
     try {
       const data = await invoke<ProviderQuota[]>("get_all_ai_quotas");
+      // Only replace data once the new fetch succeeds
       setQuotas(data);
       setQuotasError(null);
     } catch (err: any) {
       console.error("Failed to fetch AI quotas:", err);
+      // On error: keep the old data, just record the error
       setQuotasError(err?.toString() || "Failed to load usage details");
     } finally {
       setLoadingQuotas(false);
+      setIsRefreshing(false);
+      isFirstLoad.current = false;
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadQuotas();
     const interval = setInterval(loadQuotas, 15000);
-    return () => clearInterval(interval);
-  }, []);
+    // Listen for manual refresh triggered by the refresh button in App.tsx
+    const handleManualRefresh = () => loadQuotas();
+    window.addEventListener("quota-manual-refresh", handleManualRefresh);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("quota-manual-refresh", handleManualRefresh);
+    };
+  }, [loadQuotas]);
 
   const getPercentage = (w: QuotaWindow) => {
     if (w.remainingPercent !== undefined) {
@@ -60,6 +87,29 @@ export const UsagePanel: React.FC<UsagePanelProps> = ({
     return "danger";
   };
 
+  /** Compute human-readable remaining time from ISO reset string */
+  const formatTimeRemaining = (isoString?: string): string | null => {
+    if (!isoString) return null;
+    try {
+      const resetDate = new Date(isoString);
+      const now = new Date();
+      const diffMs = resetDate.getTime() - now.getTime();
+      if (diffMs <= 0) return null;
+
+      const totalMinutes = Math.floor(diffMs / 60000);
+      const days = Math.floor(totalMinutes / 1440);
+      const hours = Math.floor((totalMinutes % 1440) / 60);
+      const minutes = totalMinutes % 60;
+
+      if (totalMinutes < 1) return t("quota.resetInLessThanMinute");
+      if (days > 0) return t("quota.resetIn", { time: t("quota.resetInDays", { d: days, h: hours, m: minutes }) });
+      if (hours > 0) return t("quota.resetIn", { time: t("quota.resetInHours", { h: hours, m: minutes }) });
+      return t("quota.resetIn", { time: t("quota.resetInMinutes", { m: minutes }) });
+    } catch {
+      return null;
+    }
+  };
+
   const activeQuota = quotas.find(
     (q) => q.provider.toLowerCase() === activeTab.toLowerCase()
   );
@@ -73,6 +123,7 @@ export const UsagePanel: React.FC<UsagePanelProps> = ({
   const renderQuotaBar = (label: string, w?: QuotaWindow, isUnlimited = false) => {
     const percent = isUnlimited ? 100 : w ? getPercentage(w) : undefined;
     const statusClass = isUnlimited ? "ok" : getStatusClass(percent);
+    const timeRemaining = (!isUnlimited && w) ? formatTimeRemaining(w.resetAt) : null;
 
     const formatValue = () => {
       if (isUnlimited) {
@@ -114,6 +165,18 @@ export const UsagePanel: React.FC<UsagePanelProps> = ({
             }}
           />
         </div>
+        {timeRemaining && (
+          <span style={{
+            fontSize: "0.6rem",
+            color: "var(--text-muted)",
+            alignSelf: "flex-end",
+            fontFamily: "var(--font-mono)",
+            lineHeight: 1,
+            marginTop: "1px"
+          }}>
+            {timeRemaining}
+          </span>
+        )}
       </div>
     );
   };
@@ -156,31 +219,27 @@ export const UsagePanel: React.FC<UsagePanelProps> = ({
     );
   };
 
+  // ドラッグハンドラ: usage-only かつロック解除時のみ startDragging() を呼ぶ
+  // 公式サンプルに合わせて左クリック時のみ発火させる
+  const handleDragMouseDown = (e: React.MouseEvent) => {
+    if (!isUsageOnly || isPositionLocked) return;
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    if (target.closest("button, input, select, a")) return;
+    getCurrentWindow().startDragging().catch((err) => {
+      console.error("Failed to start dragging:", err);
+    });
+  };
+
   return (
     <div className="right-panel" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      {config?.usageOnly && (
-        <div 
-          data-tauri-drag-region 
-          className="usage-drag-handle" 
-          style={{
-            height: "12px",
-            background: "rgba(255, 255, 255, 0.02)",
-            borderBottom: "1px solid rgba(255, 255, 255, 0.03)",
-            cursor: "move",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "3px"
-          }}
-          title={t("usage.dragHandle")}
-        >
-          <div data-tauri-drag-region style={{ width: "16px", height: "2px", background: "rgba(255, 255, 255, 0.15)", borderRadius: "1px" }} />
-          <div data-tauri-drag-region style={{ width: "16px", height: "2px", background: "rgba(255, 255, 255, 0.15)", borderRadius: "1px" }} />
-        </div>
-      )}
 
       <div style={{ display: "flex", flex: 1, minHeight: 0, flexDirection: "row" }}>
-        <div className="usage-viewport" style={{ flex: 1, minWidth: 0, padding: "16px 14px", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+        <div
+          className="usage-viewport"
+          style={{ flex: 1, minWidth: 0, padding: "16px 14px", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", cursor: (isUsageOnly && !isPositionLocked) ? "move" : undefined }}
+          onMouseDown={handleDragMouseDown}
+        >
           {loadingQuotas && quotas.length === 0 ? (
             <div className="fallback-screen" style={{ height: "100%" }}>
               <div className="spinner"></div>
@@ -203,7 +262,12 @@ export const UsagePanel: React.FC<UsagePanelProps> = ({
           )}
         </div>
 
-        <div className="usage-tabs-vertical-container">
+        {/* Vertical tab strip + lock indicator */}
+        <div
+          className="usage-tabs-vertical-container"
+          style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", alignItems: "center", padding: "6px", paddingTop: "32px", cursor: (isUsageOnly && !isPositionLocked) ? "move" : undefined }}
+          onMouseDown={handleDragMouseDown}
+        >
           <div className="usage-tabs-vertical">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.id;
@@ -221,6 +285,60 @@ export const UsagePanel: React.FC<UsagePanelProps> = ({
               );
             })}
           </div>
+
+          {/* Bottom actions: refresh + lock — only in usage-only mode */}
+          {config?.usageOnly && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "4px", alignItems: "center" }}>
+              {/* Refresh button — styled same as lock button */}
+              <button
+                className={`position-lock-btn ${isRefreshing ? "locked" : "unlocked"}`}
+                onClick={loadQuotas}
+                title={t("usage.refresh")}
+                aria-label={t("usage.refresh")}
+                disabled={isRefreshing}
+              >
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ animation: isRefreshing ? "spin 0.8s linear infinite" : "none" }}
+                >
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+                </svg>
+                <span style={{ fontSize: "0.55rem", letterSpacing: "0.3px", fontWeight: 700, lineHeight: 1, marginTop: "1px" }}>
+                  {isRefreshing ? t("usage.refreshing").replace("...", "") : t("usage.refresh")}
+                </span>
+              </button>
+
+              {/* Position lock button */}
+              <button
+                className={`position-lock-btn ${isPositionLocked ? "locked" : "unlocked"}`}
+                onClick={onToggleLock}
+                title={isPositionLocked ? t("lock.unlockTooltip") : t("lock.lockTooltip")}
+                aria-label={isPositionLocked ? t("lock.unlockTooltip") : t("lock.lockTooltip")}
+              >
+                {isPositionLocked ? (
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                ) : (
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+                  </svg>
+                )}
+                <span style={{ fontSize: "0.55rem", letterSpacing: "0.3px", fontWeight: 700, lineHeight: 1, marginTop: "1px" }}>
+                  {isPositionLocked ? t("lock.locked") : t("lock.unlocked")}
+                </span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

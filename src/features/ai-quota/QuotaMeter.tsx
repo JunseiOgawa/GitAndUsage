@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { QuotaWindow } from "../../types";
 
 interface QuotaMeterProps {
@@ -6,6 +7,8 @@ interface QuotaMeterProps {
 }
 
 export const QuotaMeter: React.FC<QuotaMeterProps> = ({ window }) => {
+  const { t } = useTranslation();
+
   const getPercentage = () => {
     if (window.remainingPercent !== undefined) {
       return window.remainingPercent;
@@ -45,15 +48,39 @@ export const QuotaMeter: React.FC<QuotaMeterProps> = ({ window }) => {
     return "unavailable";
   };
 
-  const formatResetTime = (isoString?: string) => {
-    if (!isoString) return "";
+  /** Convert ISO reset time to a human-readable "Xd Xh Xm" remaining string */
+  const formatTimeRemaining = (isoString?: string): string | null => {
+    if (!isoString) return null;
     try {
-      const date = new Date(isoString);
-      return `Resets: ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+      const resetDate = new Date(isoString);
+      const now = new Date();
+      const diffMs = resetDate.getTime() - now.getTime();
+      if (diffMs <= 0) return null;
+
+      const totalMinutes = Math.floor(diffMs / 60000);
+      const days = Math.floor(totalMinutes / 1440);
+      const hours = Math.floor((totalMinutes % 1440) / 60);
+      const minutes = totalMinutes % 60;
+
+      if (totalMinutes < 1) {
+        return t("quota.resetInLessThanMinute");
+      }
+      if (days > 0) {
+        const timeStr = t("quota.resetInDays", { d: days, h: hours, m: minutes });
+        return t("quota.resetIn", { time: timeStr });
+      }
+      if (hours > 0) {
+        const timeStr = t("quota.resetInHours", { h: hours, m: minutes });
+        return t("quota.resetIn", { time: timeStr });
+      }
+      const timeStr = t("quota.resetInMinutes", { m: minutes });
+      return t("quota.resetIn", { time: timeStr });
     } catch {
-      return "";
+      return null;
     }
   };
+
+  const timeRemaining = formatTimeRemaining(window.resetAt);
 
   return (
     <div className="progress-container" style={{ margin: "14px 0", gap: "5px" }}>
@@ -74,9 +101,15 @@ export const QuotaMeter: React.FC<QuotaMeterProps> = ({ window }) => {
           }}
         />
       </div>
-      {window.resetAt && (
-        <span style={{ fontSize: "0.62rem", color: "var(--text-muted)", alignSelf: "flex-end", fontFamily: "var(--font-mono)" }}>
-          {formatResetTime(window.resetAt)}
+      {timeRemaining && (
+        <span style={{
+          fontSize: "0.62rem",
+          color: "var(--text-muted)",
+          alignSelf: "flex-end",
+          fontFamily: "var(--font-mono)",
+          marginTop: "1px"
+        }}>
+          {timeRemaining}
         </span>
       )}
     </div>

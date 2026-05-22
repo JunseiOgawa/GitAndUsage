@@ -19,9 +19,14 @@ function App() {
   const [usageSnapshots, setUsageSnapshots] = useState<UsageSnapshot[]>([]);
   const [usageLoading, setUsageLoading] = useState(true);
   const [usageError, setUsageError] = useState<string | null>(null);
+
   // Settings modal visibility
   const [showSettings, setShowSettings] = useState(false);
   const [showGearMenu, setShowGearMenu] = useState(false);
+
+  // Window position lock — session only (resets on app restart)
+  const [isPositionLocked, setIsPositionLocked] = useState(false);
+  const handleToggleLock = () => setIsPositionLocked(prev => !prev);
 
   // Load application configuration
   const loadConfig = useCallback(async () => {
@@ -88,16 +93,21 @@ function App() {
 
   const handleToggleUsageOnly = async () => {
     if (!config) return;
+    const nextUsageOnly = !config.usageOnly;
+    const updatedConfig: AppConfig = { ...config, usageOnly: nextUsageOnly };
+    // Optimistically update UI immediately so the toggle feels instant
+    setConfig(updatedConfig);
+    setShowGearMenu(false);
     try {
-      const updatedConfig: AppConfig = {
-        ...config,
-        usageOnly: !config.usageOnly,
-      };
-      await invoke("save_app_config", { config: updatedConfig });
-      setConfig(updatedConfig);
-      setShowGearMenu(false);
+      // Run save + window resize in parallel — no sequential disk-read on the Rust side
+      await Promise.all([
+        invoke("save_app_config", { config: updatedConfig }),
+        invoke("set_window_size_mode", { settingsOpen: false, usageOnly: nextUsageOnly }),
+      ]);
     } catch (err) {
       console.error("Failed to toggle usage only mode:", err);
+      // Revert on failure
+      setConfig(config);
     }
   };
 
@@ -182,7 +192,8 @@ function App() {
   // Dynamic window resizing when settings open/close
   useEffect(() => {
     if (config) {
-      invoke("set_window_size_mode", { settingsOpen: showSettings }).catch((err) => {
+      // Pass usageOnly so Rust doesn't re-read config from disk (eliminates resize lag)
+      invoke("set_window_size_mode", { settingsOpen: showSettings, usageOnly: config.usageOnly ?? false }).catch((err) => {
         console.error("Failed to invoke set_window_size_mode:", err);
       });
     }
@@ -250,17 +261,19 @@ function App() {
   const isUsageOnly = config?.usageOnly || false;
 
   return (
-    <main className={`app-container borderless-canvas ${isUsageOnly ? "usage-only-mode" : ""}`}>
-      {/* Floating Gear Settings Toggle & Popover Menu */}
-      <div style={{ position: "absolute", top: "8px", right: "8px", zIndex: 100, display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-        <button 
+    <main
+      className={`app-container borderless-canvas ${isUsageOnly ? "usage-only-mode" : ""}`}
+    >
+      {/* Floating controls: gear settings only (refresh moved to tab strip in UsagePanel) */}
+      <div style={{ position: "absolute", top: "6px", right: "6px", zIndex: 100, display: "flex", alignItems: "center", gap: "4px" }}>
+        <button
           className={`settings-toggle-floating-btn ${showGearMenu ? "active" : ""}`}
           onClick={() => setShowGearMenu(!showGearMenu)}
           title={t("settings.title")}
           aria-label={t("settings.title")}
           style={{ position: "static" }}
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="3" />
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
           </svg>
@@ -268,10 +281,21 @@ function App() {
 
         {showGearMenu && (
           <div className="gear-dropdown-menu tab-slide-fade-in">
-            <button className="gear-dropdown-item" onClick={handleToggleUsageOnly}>
-              <span className={`gear-dropdown-dot ${isUsageOnly ? "active" : ""}`} />
-              <span style={{ flex: 1, textAlign: "left" }}>{t("settings.gearMenu.childMode")}</span>
-            </button>
+            {/* Child Window Mode Toggle — slide switch design */}
+            <div className="gear-dropdown-item gear-toggle-row" onClick={handleToggleUsageOnly}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: isUsageOnly ? "var(--accent-color)" : "var(--text-muted)", transition: "color 0.2s" }}>
+                <rect x="2" y="3" width="20" height="14" rx="2" />
+                <path d="M8 21h8M12 17v4" />
+              </svg>
+              <span style={{ flex: 1 }}>{t("settings.gearMenu.childMode")}</span>
+              {/* Slide toggle switch */}
+              <span className={`gear-toggle-switch ${isUsageOnly ? "on" : "off"}`} aria-hidden="true">
+                <span className="gear-toggle-knob" />
+              </span>
+            </div>
+
+            <div className="gear-dropdown-divider" />
+
             <button className="gear-dropdown-item" onClick={() => { setShowSettings(true); setShowGearMenu(false); }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: "6px", color: "var(--text-secondary)" }}>
                 <circle cx="12" cy="12" r="3" />
@@ -307,6 +331,9 @@ function App() {
         loading={usageLoading} 
         error={usageError} 
         config={config}
+        isUsageOnly={isUsageOnly}
+        isPositionLocked={isPositionLocked}
+        onToggleLock={handleToggleLock}
       />
 
 

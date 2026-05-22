@@ -97,7 +97,9 @@
     "subscriptionTier": "契約プラン",
     "noLimit": "制限なし",
     "sourceLabel": "テレメトリ: {{provider}}",
-    "updated": "更新時刻: {{time}}"
+    "updated": "更新時刻: {{time}}",
+    "refreshing": "更新中...",
+    "refresh": "更新"
   },
   "quota": {
     "title": "CLI AI 使用制限",
@@ -118,7 +120,12 @@
       "left": "残り {{percent}}%"
     },
     "source": "ソース: {{source}} ({{reliability}})",
-    "synced": "同期時刻: {{time}}"
+    "synced": "同期時刻: {{time}}",
+    "resetIn": "リセットまで {{time}}",
+    "resetInDays": "{{d}}日 {{h}}時間 {{m}}分",
+    "resetInHours": "{{h}}時間 {{m}}分",
+    "resetInMinutes": "{{m}}分",
+    "resetInLessThanMinute": "1分未満"
   },
   "setup": {
     "claude": {
@@ -136,5 +143,11 @@
     "cliNotDetected": "⚠️ CLIがインストールされていないか、検出できませんでした",
     "authRequired": "🔑 認証が必要です",
     "signInInstruction": "ターミナルで次のコマンドを実行してサインインしてください:"
+  },
+  "lock": {
+    "locked": "固定中",
+    "unlocked": "移動可",
+    "lockTooltip": "ウィンドウ位置を固定する",
+    "unlockTooltip": "ウィンドウ位置の固定を解除する"
   }
 }
