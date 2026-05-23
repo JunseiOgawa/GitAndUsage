@@ -118,7 +118,6 @@ export const UsagePanel: React.FC<UsagePanelProps> = ({
     (q) => q.provider.toLowerCase() === activeTab.toLowerCase()
   );
 
-  const dockPosition = config?.dockPosition || "right";
   // In normal mode, use normalDockPosition for layout; in coin mode, use dockPosition
   const effectiveDockPosition = isUsageOnly
     ? (config?.dockPosition || "right")
@@ -131,7 +130,7 @@ export const UsagePanel: React.FC<UsagePanelProps> = ({
     { id: "claude", label: "Claude" }
   ];
 
-  const renderHorizontalQuotas = () => {
+  const renderAllQuotas = () => {
     const activeQuotas = quotas.filter(q => {
       if (config?.enabledProviders && config.enabledProviders.length > 0) {
         return config.enabledProviders.includes(q.provider);
@@ -140,7 +139,7 @@ export const UsagePanel: React.FC<UsagePanelProps> = ({
     });
 
     return (
-      <div className="usage-horizontal-container" style={{ display: "flex", flex: 1, flexDirection: "row", gap: "24px", alignItems: "center", justifyContent: "space-around", width: "100%", height: "100%" }}>
+      <div className="usage-all-container" style={{ display: "flex", flex: 1, flexDirection: isHorizontal ? "row" : "column", gap: isHorizontal ? "24px" : "16px", alignItems: "center", justifyContent: "space-around", width: "100%", height: "100%" }}>
         {activeQuotas.map((q) => {
           const isCopilot = q.provider.toLowerCase() === "copilot";
           const dailyWindow = q.windows.find(w => w.id === "5h" || w.id === "primary");
@@ -313,8 +312,6 @@ export const UsagePanel: React.FC<UsagePanelProps> = ({
               <h4 style={{ marginBottom: "4px" }}>{t("common.failedToLoad")}</h4>
               <p className="fallback-text" style={{ fontSize: "0.75rem" }}>{quotasError}</p>
             </div>
-          ) : isHorizontal ? (
-            renderHorizontalQuotas()
           ) : (
             renderCardContent()
           )}
@@ -343,7 +340,7 @@ export const UsagePanel: React.FC<UsagePanelProps> = ({
           }}
           onMouseDown={handleDragMouseDown}
         >
-          {!isHorizontal && (
+          {!isUsageOnly && (
             <div className="usage-tabs-vertical">
               {tabs.map((tab) => {
                 const isActive = activeTab === tab.id;
