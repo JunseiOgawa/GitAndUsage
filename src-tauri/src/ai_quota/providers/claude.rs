@@ -2,7 +2,7 @@ use crate::ai_quota::types::{
     ProviderId, ProviderQuota, QuotaSource, QuotaReliability, QuotaWindow, QuotaWindowId, QuotaUnit
 };
 use crate::ai_quota::util::command::{resolve_cli_path, run_command_with_timeout};
-use crate::ai_quota::util::paths::{get_claude_paths, find_existing_file};
+use crate::ai_quota::util::paths::{get_claude_paths, find_existing_file, home_dir};
 use crate::ai_quota::util::redact::redact_secret;
 use chrono::Utc;
 use std::fs;
@@ -107,7 +107,7 @@ pub fn get_claude_quota() -> ProviderQuota {
 
     if logged_in {
         let mut cache_candidates = Vec::new();
-        if let Some(home) = dirs::home_dir() {
+        if let Some(home) = home_dir() {
             cache_candidates.push(home.join(".ai-usage-monitor").join("claude-quota.json"));
             cache_candidates.push(home.join(".claude").join("quota.json"));
         }
@@ -155,7 +155,7 @@ pub fn get_claude_quota() -> ProviderQuota {
                     reset_at: seven_day_reset,
                 });
             }
-        } else {
+        } else if warning.is_none() {
             // Remainder not found
             warning = Some("Logged in, quota unavailable".to_string());
         }
