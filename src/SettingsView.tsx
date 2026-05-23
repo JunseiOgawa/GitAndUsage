@@ -32,11 +32,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   const [repoPath, setRepoPath] = useState(config.repoPath);
   const [heightRatio, setHeightRatio] = useState(config.heightRatio);
-  const [usageOnly, setUsageOnly] = useState(config.usageOnly || false);
   const [accentColor, setAccentColor] = useState(config.accentColor || "#6366f1");
   const [windowOpacity, setWindowOpacity] = useState(config.windowOpacity || 90);
+  const [controllerWidth, setControllerWidth] = useState(config.controllerWidth || 380);
+  const [controllerHeight, setControllerHeight] = useState(config.controllerHeight || 96);
   // Keep the original opacity so we can restore it on cancel
   const originalOpacity = config.windowOpacity ?? 90;
+  const originalWidth = config.controllerWidth ?? 380;
+  const originalHeight = config.controllerHeight ?? 96;
   const usageJsonPath = config.usageJsonPath;
   
   // Retain hidden credential state so we don't clear them in config on save
@@ -58,9 +61,26 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   };
 
   const handleCancel = () => {
-    // Restore the original opacity preview before closing without saving
+    // Restore the original opacity and size preview before closing without saving
     onPreviewOpacity?.(originalOpacity);
+    invoke("preview_controller_size", { width: originalWidth, height: originalHeight }).catch((err) => {
+      console.error("Failed to restore original size on cancel:", err);
+    });
     onClose();
+  };
+
+  const handleControllerWidthChange = (value: number) => {
+    setControllerWidth(value);
+    invoke("preview_controller_size", { width: value, height: controllerHeight }).catch((err) => {
+      console.error("Failed to preview controller width:", err);
+    });
+  };
+
+  const handleControllerHeightChange = (value: number) => {
+    setControllerHeight(value);
+    invoke("preview_controller_size", { width: controllerWidth, height: value }).catch((err) => {
+      console.error("Failed to preview controller height:", err);
+    });
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -73,9 +93,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       repoPath: repoPath,
       heightRatio: heightRatio,
       usageJsonPath: usageJsonPath,
-      usageOnly: usageOnly,
+      // usageOnly は設定画面からは変更しない（ツールバーボタンで切り替え）
       accentColor: accentColor,
       windowOpacity: windowOpacity,
+      controllerWidth: controllerWidth,
+      controllerHeight: controllerHeight,
       codexToken: codexToken || undefined,
       copilotPat: copilotPat || undefined,
       claudeKey: claudeKey || undefined,
@@ -228,23 +250,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     </select>
                   </div>
 
-                  <div className="settings-checkbox-card" onClick={() => setUsageOnly(!usageOnly)}>
-                    <input
-                      id="usage-only"
-                      type="checkbox"
-                      checked={usageOnly}
-                      onChange={(e) => setUsageOnly(e.target.checked)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                    <div className="checkbox-text-wrapper">
-                      <label htmlFor="usage-only" onClick={(e) => e.stopPropagation()}>
-                        {t("settings.general.usageOnly")}
-                      </label>
-                      <p className="field-description" style={{ margin: 0, marginTop: "2px" }}>
-                        Git履歴などを非表示にして、CLI使用状況・制限メータのみの省スペース表示モードにします。
-                      </p>
-                    </div>
-                  </div>
                 </div>
               )}
 
@@ -261,6 +266,48 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                         max="100"
                         value={windowOpacity}
                         onChange={(e) => handleOpacityChange(parseInt(e.target.value))}
+                        className="spacious-range-slider"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="settings-field-group">
+                    <label htmlFor="controller-width">
+                      {i18n.language === "ja" ? "コントローラー幅 (縦置きモード時)" : "Controller Width (Vertical Dock)"}: {controllerWidth}px
+                    </label>
+                    <p className="field-description">
+                      {i18n.language === "ja" ? "左、右、およびフロートドックモードのコントローラー幅を調整します。" : "Adjust the width of the controller in left, right, and floating dock modes."}
+                    </p>
+                    <div className="slider-wrapper">
+                      <input
+                        id="controller-width"
+                        type="range"
+                        min="280"
+                        max="600"
+                        step="10"
+                        value={controllerWidth}
+                        onChange={(e) => handleControllerWidthChange(parseInt(e.target.value))}
+                        className="spacious-range-slider"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="settings-field-group">
+                    <label htmlFor="controller-height">
+                      {i18n.language === "ja" ? "コントローラー高さ (横置きモード時)" : "Controller Height (Horizontal Dock)"}: {controllerHeight}px
+                    </label>
+                    <p className="field-description">
+                      {i18n.language === "ja" ? "上および下ドックモードのコントローラーの高さを調整します。" : "Adjust the height of the controller in top and bottom dock modes."}
+                    </p>
+                    <div className="slider-wrapper">
+                      <input
+                        id="controller-height"
+                        type="range"
+                        min="60"
+                        max="200"
+                        step="5"
+                        value={controllerHeight}
+                        onChange={(e) => handleControllerHeightChange(parseInt(e.target.value))}
                         className="spacious-range-slider"
                       />
                     </div>
