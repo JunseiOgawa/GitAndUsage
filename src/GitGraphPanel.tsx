@@ -1125,16 +1125,7 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
                         className="split-column graph-column branch-graph-column"
                         style={{ flex: `1 1 0`, minWidth: 0, maxWidth: "none" }}
                       >
-                        <div className="column-header">
-                          <div className="column-title-text">
-                            <span className="column-header-title">{t("git.historyGraph")}</span>
-                          </div>
-                          
-                          <div style={{ display: "flex", gap: "6px" }}>
-                            {status.ahead > 0 && <span className="git-sync-badge ahead">{t("git.ahead", { count: status.ahead })}</span>}
-                            {status.behind > 0 && <span className="git-sync-badge behind">{t("git.behind", { count: status.behind })}</span>}
-                          </div>
-                        </div>
+
 
                         <div className="graph-code-view" style={{ padding: 0, overflow: "auto" }}>
                           <HorizontalCommitGraph repoPath={repoPath} commits={sharedCommits} loading={commitsLoading} />
@@ -1222,12 +1213,7 @@ export const GitGraphPanel: React.FC<GitGraphPanelProps> = ({
                     className="split-column graph-column"
                     style={{ flex: `1 1 0`, minWidth: 0, maxWidth: "none" }}
                   >
-                    <div className="column-header">
-                      <span className="column-header-title">{t("git.historyGraphChanges")}</span>
-                      <span className="git-branch-badge" style={{ fontSize: "0.72rem", padding: "2px 6px" }}>
-                        {status.currentBranch}
-                      </span>
-                    </div>
+
 
                     <div className="graph-code-view" style={{ padding: 0, overflow: "auto" }}>
                       <HorizontalCommitGraph repoPath={repoPath} commits={sharedCommits} loading={commitsLoading} />

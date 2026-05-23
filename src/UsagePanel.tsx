@@ -14,6 +14,7 @@ interface UsagePanelProps {
   isPositionLocked: boolean;
   onToggleLock: () => void;
   onDockChange?: (dock: "left" | "right" | "top" | "bottom" | "floating") => void;
+  onMoveMonitor?: (direction: "left" | "right") => void;
 }
 
 export const UsagePanel: React.FC<UsagePanelProps> = ({
@@ -25,6 +26,7 @@ export const UsagePanel: React.FC<UsagePanelProps> = ({
   isPositionLocked,
   onToggleLock,
   onDockChange,
+  onMoveMonitor,
 }) => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<string>("codex");
@@ -117,7 +119,11 @@ export const UsagePanel: React.FC<UsagePanelProps> = ({
   );
 
   const dockPosition = config?.dockPosition || "right";
-  const isHorizontal = isUsageOnly && (dockPosition === "top" || dockPosition === "bottom");
+  // In normal mode, use normalDockPosition for layout; in coin mode, use dockPosition
+  const effectiveDockPosition = isUsageOnly
+    ? (config?.dockPosition || "right")
+    : (config?.normalDockPosition || "floating");
+  const isHorizontal = isUsageOnly && (effectiveDockPosition === "top" || effectiveDockPosition === "bottom");
 
   const tabs = [
     { id: "codex", label: "Codex" },
@@ -282,7 +288,7 @@ export const UsagePanel: React.FC<UsagePanelProps> = ({
   };
 
   return (
-    <div className={`right-panel ${isHorizontal ? "horizontal-dock-layout" : ""}`} style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <div className={`right-panel dock-${effectiveDockPosition} ${isHorizontal ? "horizontal-dock-layout" : ""} ${!isUsageOnly ? `normal-dock-${effectiveDockPosition}` : ""}`} style={{ display: "flex", flexDirection: "column", height: "100%" }}>
 
       <div style={{ display: "flex", flex: 1, minHeight: 0, flexDirection: isHorizontal ? "row" : "row", height: "100%" }}>
         <div
@@ -342,7 +348,7 @@ export const UsagePanel: React.FC<UsagePanelProps> = ({
               {tabs.map((tab) => {
                 const isActive = activeTab === tab.id;
                 const quota = quotas.find(q => q.provider.toLowerCase() === tab.id);
-                const hasData = quota && quota.loggedIn;
+                const hasData = quota && quota.cliInstalled && quota.loggedIn;
                 return (
                   <button
                     key={tab.id}
@@ -357,55 +363,71 @@ export const UsagePanel: React.FC<UsagePanelProps> = ({
             </div>
           )}
 
-          {/* Actions: refresh + lock + docking buttons */}
-          {config?.usageOnly && (
-            <div style={{ display: "flex", flexDirection: isHorizontal ? "row" : "column", gap: "6px", alignItems: "center" }}>
-              
-              {/* Quick Dock Controller Grid */}
-              <div className={`quick-dock-grid ${isHorizontal ? "horizontal" : "vertical"}`} style={{ display: "flex", gap: "2px" }}>
+          {/* Controller — 親ウィンドウモードのみ表示
+              レイアウト:
+                < ↑ >
+                ← ✥ →
+                ○ ↓ ○
+              < = 左モニター, > = 右モニター */}
+          {!isUsageOnly && (
+            <div className="controller">
+              <div className="controller-dpad">
+                {/* Row 1: 左モニター | ↑ | 右モニター */}
                 <button
-                  className={`quick-dock-btn ${dockPosition === "left" ? "active" : ""}`}
-                  onClick={() => onDockChange?.("left")}
-                  title={t("dock.left", { defaultValue: "Dock Left" })}
-                  aria-label="Dock Left"
-                >
-                  ←
-                </button>
+                  className="controller-btn controller-monitor-btn"
+                  onClick={() => onMoveMonitor?.("left")}
+                  title={t("monitor.left", { defaultValue: "左のモニターへ" })}
+                  aria-label="Move to Left Monitor"
+                >&lt;</button>
                 <button
-                  className={`quick-dock-btn ${dockPosition === "top" ? "active" : ""}`}
+                  className={`controller-btn ${effectiveDockPosition === "top" ? "active" : ""}`}
                   onClick={() => onDockChange?.("top")}
                   title={t("dock.top", { defaultValue: "Dock Top" })}
                   aria-label="Dock Top"
-                >
-                  ↑
-                </button>
+                >↑</button>
                 <button
-                  className={`quick-dock-btn ${dockPosition === "bottom" ? "active" : ""}`}
-                  onClick={() => onDockChange?.("bottom")}
-                  title={t("dock.bottom", { defaultValue: "Dock Bottom" })}
-                  aria-label="Dock Bottom"
-                >
-                  ↓
-                </button>
+                  className="controller-btn controller-monitor-btn"
+                  onClick={() => onMoveMonitor?.("right")}
+                  title={t("monitor.right", { defaultValue: "右のモニターへ" })}
+                  aria-label="Move to Right Monitor"
+                >&gt;</button>
+
+                {/* Row 2: ← | ✥ | → */}
                 <button
-                  className={`quick-dock-btn ${dockPosition === "right" ? "active" : ""}`}
-                  onClick={() => onDockChange?.("right")}
-                  title={t("dock.right", { defaultValue: "Dock Right" })}
-                  aria-label="Dock Right"
-                >
-                  →
-                </button>
+                  className={`controller-btn ${effectiveDockPosition === "left" ? "active" : ""}`}
+                  onClick={() => onDockChange?.("left")}
+                  title={t("dock.left", { defaultValue: "Dock Left" })}
+                  aria-label="Dock Left"
+                >←</button>
                 <button
-                  className={`quick-dock-btn ${dockPosition === "floating" ? "active" : ""}`}
+                  className={`controller-btn controller-center ${effectiveDockPosition === "floating" ? "active" : ""}`}
                   onClick={() => onDockChange?.("floating")}
                   title={t("dock.floating", { defaultValue: "Float Window" })}
                   aria-label="Float Window"
-                  style={{ fontWeight: "bold" }}
-                >
-                  ✥
-                </button>
-              </div>
+                >✥</button>
+                <button
+                  className={`controller-btn ${effectiveDockPosition === "right" ? "active" : ""}`}
+                  onClick={() => onDockChange?.("right")}
+                  title={t("dock.right", { defaultValue: "Dock Right" })}
+                  aria-label="Dock Right"
+                >→</button>
 
+                {/* Row 3: ○ | ↓ | ○ */}
+                <span />
+                <button
+                  className={`controller-btn ${effectiveDockPosition === "bottom" ? "active" : ""}`}
+                  onClick={() => onDockChange?.("bottom")}
+                  title={t("dock.bottom", { defaultValue: "Dock Bottom" })}
+                  aria-label="Dock Bottom"
+                >↓</button>
+                <span />
+              </div>
+            </div>
+          )}
+
+          {/* Refresh + Lock buttons — 子ウィンドウモードのみ表示 */}
+          {config?.usageOnly && (
+            <div style={{ display: "flex", flexDirection: isHorizontal ? "row" : "column", gap: "6px", alignItems: "center" }}>
               {/* Refresh button */}
               <button
                 className={`position-lock-btn ${isRefreshing ? "locked" : "unlocked"}`}

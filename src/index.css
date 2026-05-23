@@ -1872,12 +1872,32 @@ body {
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-.quick-dock-grid.vertical {
-  flex-direction: column;
+
+/* D-pad cross layout for dock direction controls */
+.quick-dock-dpad {
+  display: grid;
+  grid-template-columns: repeat(3, 20px);
+  grid-template-rows: repeat(3, 20px);
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+  padding: 3px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-.quick-dock-grid.horizontal {
-  flex-direction: row;
+.quick-dock-dpad span {
+  /* empty corner cells */
+  display: block;
+}
+
+.quick-dock-center {
+  font-size: 0.6rem;
+  opacity: 0.5;
+}
+
+.quick-dock-center:hover {
+  opacity: 1;
 }
 
 /* Quick Dock Buttons styling */
@@ -1911,6 +1931,109 @@ body {
   background: var(--accent-color);
   color: #ffffff;
   box-shadow: 0 0 8px var(--accent-glow);
+}
+
+/* =========================================
+   CONTROLLER — ウィンドウ位置コントローラー
+   親ウィンドウモード(通常モード)のみ表示。
+   D-pad（上下左右・フロート）＋
+   モニター切り替えボタン（左右）で構成。
+   ========================================= */
+
+/* コントローラー外枠 */
+.controller {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+/* モニターボタン + D-pad を横並びにする行 */
+.controller-monitor-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+}
+
+/* D-pad 3×3 グリッド */
+.controller-dpad {
+  display: grid;
+  grid-template-columns: repeat(3, 20px);
+  grid-template-rows: repeat(3, 20px);
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+  padding: 3px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.controller-dpad span {
+  display: block;
+}
+
+/* コントローラー共通ボタンスタイル */
+.controller-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  width: 20px;
+  height: 20px;
+  font-size: 0.72rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 0;
+}
+
+.controller-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+  transform: scale(1.08);
+}
+
+.controller-btn:active {
+  transform: scale(0.95);
+}
+
+.controller-btn.active {
+  background: var(--accent-color);
+  color: #ffffff;
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+/* フロートボタン（中央の✥） */
+.controller-center {
+  font-size: 0.6rem;
+  opacity: 0.5;
+}
+
+.controller-center:hover {
+  opacity: 1;
+}
+
+/* モニター切り替えボタン */
+.controller-monitor-btn {
+  font-size: 0.65rem;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.controller-monitor-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--accent-color);
+  border-color: rgba(99, 102, 241, 0.2);
+  opacity: 1;
+  transform: scale(1.1);
 }
 
 /* Adaptive Horizontal Docking Panel Styles */
@@ -2505,5 +2628,91 @@ body {
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+
+/* =========================================
+   11. 通常モード（Normal Window Mode）Dock レイアウト
+   通常モードでは GitGraph + UsagePanel を縦/横に
+   配置し直す。isUsageOnly=false のときのみ適用。
+   ========================================= */
+
+/* ── Left dock: 縦長ウィンドウ、左端配置 ── */
+.app-container.borderless-canvas:not(.usage-only-mode).normal-dock-left {
+  flex-direction: column;
+}
+
+/* GitGraphPanel を縦いっぱいに展開（left/right dock 時） */
+.app-container.borderless-canvas:not(.usage-only-mode).normal-dock-left .right-panel,
+.app-container.borderless-canvas:not(.usage-only-mode).normal-dock-right .right-panel {
+  flex: 0 0 auto;
+  width: 100%;
+  border-left: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* ── Right dock: 縦長ウィンドウ、右端配置 ── */
+.app-container.borderless-canvas:not(.usage-only-mode).normal-dock-right {
+  flex-direction: column;
+}
+
+/* ── Top dock: 横帯ウィンドウ、画面上端 ── */
+.app-container.borderless-canvas:not(.usage-only-mode).normal-dock-top {
+  flex-direction: row;
+}
+
+.app-container.borderless-canvas:not(.usage-only-mode).normal-dock-top .right-panel {
+  flex: 0 0 auto;
+  height: 100%;
+  min-height: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.04);
+  border-top: none;
+  width: auto;
+}
+
+/* ── Bottom dock: 横帯ウィンドウ、画面下端 ── */
+.app-container.borderless-canvas:not(.usage-only-mode).normal-dock-bottom {
+  flex-direction: row;
+}
+
+.app-container.borderless-canvas:not(.usage-only-mode).normal-dock-bottom .right-panel {
+  flex: 0 0 auto;
+  height: 100%;
+  min-height: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.04);
+  border-top: none;
+  width: auto;
+}
+
+/* ── Floating / default: 全幅（従来の動作を維持） ── */
+.app-container.borderless-canvas:not(.usage-only-mode).normal-dock-floating {
+  flex-direction: row;
+}
+
+/* UsagePanel の内部レイアウト調整（通常モード top/bottom 横帯時） */
+.app-container.borderless-canvas:not(.usage-only-mode).normal-dock-top
+  .right-panel.normal-dock-top,
+.app-container.borderless-canvas:not(.usage-only-mode).normal-dock-bottom
+  .right-panel.normal-dock-bottom {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+/* 通常モード top/bottom: UsagePanel の内部を横並びに */
+.right-panel.normal-dock-top .usage-viewport,
+.right-panel.normal-dock-bottom .usage-viewport {
+  padding: 6px 16px;
+  justify-content: center;
+}
+
+.right-panel.normal-dock-top .usage-tabs-vertical-container,
+.right-panel.normal-dock-bottom .usage-tabs-vertical-container {
+  flex-direction: row;
+  align-items: center;
+  padding: 4px 12px;
+  border-left: 1px solid rgba(255, 255, 255, 0.04);
+  height: 100%;
+  gap: 8px;
 }
 

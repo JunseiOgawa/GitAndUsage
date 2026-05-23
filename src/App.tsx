@@ -8,7 +8,7 @@ import { UsagePanel } from "./UsagePanel";
 import { SettingsView } from "./SettingsView";
 
 function App() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [configLoading, setConfigLoading] = useState(true);
   const [configError, setConfigError] = useState<string | null>(null);
@@ -112,22 +112,48 @@ function App() {
     }
   };
 
-  const handleDockChange = async (dock: "left" | "right" | "top" | "bottom" | "floating") => {
+  const handleCoinDockChange = async (dock: "left" | "right" | "top" | "bottom" | "floating") => {
     if (!config) return;
+    // Coin (usage-only) mode: update dockPosition only
     const updatedConfig: AppConfig = { ...config, dockPosition: dock };
     setConfig(updatedConfig);
     try {
       await Promise.all([
         invoke("save_app_config", { config: updatedConfig }),
-        invoke("set_window_size_mode", { settingsOpen: false, usageOnly: config.usageOnly }),
+        invoke("set_window_size_mode", { settingsOpen: false, usageOnly: updatedConfig.usageOnly ?? false }),
       ]);
     } catch (err) {
-      console.error("Failed to update dock position:", err);
+      console.error("Failed to update coin dock position:", err);
       setConfig(config);
     }
   };
 
-  // Drag-to-Snap (Magnetic snap) implementation
+  const handleNormalDockChange = async (dock: "left" | "right" | "top" | "bottom" | "floating") => {
+    if (!config) return;
+    // Normal mode: update normalDockPosition only — never touches coin mode's dockPosition
+    const updatedConfig: AppConfig = { ...config, normalDockPosition: dock };
+    setConfig(updatedConfig);
+    try {
+      await Promise.all([
+        invoke("save_app_config", { config: updatedConfig }),
+        invoke("set_window_size_mode", { settingsOpen: false, usageOnly: false }),
+      ]);
+    } catch (err) {
+      console.error("Failed to update normal dock position:", err);
+      setConfig(config);
+    }
+  };
+
+  // Convenience: route to the correct handler based on current mode
+  const handleDockChange = (dock: "left" | "right" | "top" | "bottom" | "floating") => {
+    if (config?.usageOnly) {
+      handleCoinDockChange(dock);
+    } else {
+      handleNormalDockChange(dock);
+    }
+  };
+
+  // Drag-to-Snap (Magnetic snap) implementation — Coin mode only
   useEffect(() => {
     if (!config || !config.usageOnly || isPositionLocked) return;
 
@@ -163,7 +189,7 @@ function App() {
           }
           
           if (targetDock && config.dockPosition !== targetDock) {
-            handleDockChange(targetDock);
+            handleCoinDockChange(targetDock);
           }
         }, 400); // 400ms after move stops
       });
@@ -180,6 +206,12 @@ function App() {
   const handleExitApp = () => {
     invoke("exit_app").catch((err) => {
       console.error("Failed to exit app:", err);
+    });
+  };
+
+  const handleMoveMonitor = (direction: "left" | "right") => {
+    invoke("move_to_next_monitor", { direction }).catch((err) => {
+      console.error("Failed to move monitor:", err);
     });
   };
 
@@ -330,13 +362,29 @@ function App() {
   }
 
   const isUsageOnly = config?.usageOnly || false;
+  const normalDockPosition = config?.normalDockPosition || "floating";
 
   return (
     <main
-      className={`app-container borderless-canvas ${isUsageOnly ? "usage-only-mode" : ""}`}
+      className={`app-container borderless-canvas ${isUsageOnly ? "usage-only-mode" : `normal-dock-${normalDockPosition}`}`}
     >
-      {/* Floating controls: gear settings only (refresh moved to tab strip in UsagePanel) */}
+      {/* Floating controls: child mode toggle + gear settings */}
       <div style={{ position: "absolute", top: "6px", right: "6px", zIndex: 100, display: "flex", alignItems: "center", gap: "4px" }}>
+        {/* Child Window Mode Toggle Button */}
+        <button
+          className={`settings-toggle-floating-btn ${isUsageOnly ? "active" : ""}`}
+          onClick={handleToggleUsageOnly}
+          title={i18n.language === "ja" ? (isUsageOnly ? "通常モードに切り替え" : "子ウィンドウモードに切り替え") : (isUsageOnly ? "Switch to Normal Mode" : "Switch to Child Window Mode")}
+          aria-label={isUsageOnly ? "Switch to Normal Mode" : "Switch to Child Window Mode"}
+          style={{ position: "static" }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2" />
+            <path d="M8 21h8M12 17v4" />
+          </svg>
+        </button>
+
+        {/* Settings Gear */}
         <button
           className={`settings-toggle-floating-btn ${showGearMenu ? "active" : ""}`}
           onClick={() => setShowGearMenu(!showGearMenu)}
@@ -352,21 +400,6 @@ function App() {
 
         {showGearMenu && (
           <div className="gear-dropdown-menu tab-slide-fade-in">
-            {/* Child Window Mode Toggle — slide switch design */}
-            <div className="gear-dropdown-item gear-toggle-row" onClick={handleToggleUsageOnly}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: isUsageOnly ? "var(--accent-color)" : "var(--text-muted)", transition: "color 0.2s" }}>
-                <rect x="2" y="3" width="20" height="14" rx="2" />
-                <path d="M8 21h8M12 17v4" />
-              </svg>
-              <span style={{ flex: 1 }}>{t("settings.gearMenu.childMode")}</span>
-              {/* Slide toggle switch */}
-              <span className={`gear-toggle-switch ${isUsageOnly ? "on" : "off"}`} aria-hidden="true">
-                <span className="gear-toggle-knob" />
-              </span>
-            </div>
-
-            <div className="gear-dropdown-divider" />
-
             <button className="gear-dropdown-item" onClick={() => { setShowSettings(true); setShowGearMenu(false); }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: "6px", color: "var(--text-secondary)" }}>
                 <circle cx="12" cy="12" r="3" />
@@ -406,6 +439,7 @@ function App() {
         isPositionLocked={isPositionLocked}
         onToggleLock={handleToggleLock}
         onDockChange={handleDockChange}
+        onMoveMonitor={handleMoveMonitor}
       />
 
 
