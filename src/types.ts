@@ -41,7 +41,12 @@ export interface AppConfig {
   claudeKey?: string;
   accentColor?: string;
   windowOpacity?: number;
+  /** Dock position for coin (usage-only) mode */
   dockPosition?: "left" | "right" | "top" | "bottom" | "floating";
+  /** Dock position for normal (non-coin) window mode — independent from dockPosition */
+  normalDockPosition?: "left" | "right" | "top" | "bottom" | "floating";
+  controllerWidth?: number;
+  controllerHeight?: number;
 }
 
 export type ProviderId = "claude" | "codex" | "copilot" | "opencode";
