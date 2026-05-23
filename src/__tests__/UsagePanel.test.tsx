@@ -1,7 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
+import { invoke } from "@tauri-apps/api/core";
 import { UsagePanel } from "../UsagePanel";
-import type { AppConfig } from "../types";
+import type { AppConfig, ProviderQuota } from "../types";
 
 // Helper
 function createConfig(overrides: Partial<AppConfig> = {}): AppConfig {
@@ -18,6 +19,53 @@ function createConfig(overrides: Partial<AppConfig> = {}): AppConfig {
 }
 
 describe("UsagePanel Dock Separation", () => {
+  it("usageOnly renders the same single-card usage view as normal mode", async () => {
+    const quotas: ProviderQuota[] = [
+      {
+        provider: "codex",
+        displayName: "Codex CLI",
+        cliInstalled: true,
+        loggedIn: true,
+        windows: [
+          { id: "primary", label: "Daily", remainingPercent: 99, unit: "percent" },
+          { id: "secondary", label: "Weekly", remainingPercent: 29, unit: "percent" },
+        ],
+        source: "manual",
+        reliability: "high",
+        updatedAt: "2026-05-23T00:00:00Z",
+      },
+    ];
+
+    vi.mocked(invoke).mockResolvedValueOnce(quotas);
+
+    const config = createConfig({
+      usageOnly: true,
+      dockPosition: "right",
+      normalDockPosition: "floating",
+    });
+
+    render(
+      <UsagePanel
+        snapshots={[]}
+        loading={false}
+        error={null}
+        config={config}
+        isUsageOnly={true}
+        isPositionLocked={false}
+        onToggleLock={vi.fn()}
+        onDockChange={vi.fn()}
+        onMoveMonitor={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Daily Limit")).toBeInTheDocument();
+      expect(screen.getByText("Weekly Limit")).toBeInTheDocument();
+    });
+
+    expect(document.querySelector(".usage-all-container")).toBeNull();
+  });
+
   it("renders with normalDockPosition when usageOnly is false", () => {
     const config = createConfig({
       usageOnly: false,
@@ -96,6 +144,7 @@ describe("UsagePanel Dock Separation", () => {
         config={coinConfig}
         isUsageOnly={true}
         isPositionLocked={false}
+        onToggleLock={vi.fn()}
       />
     );
     expect(coinContainer.querySelector(".right-panel")).toHaveClass("horizontal-dock-layout");
@@ -111,6 +160,7 @@ describe("UsagePanel Dock Separation", () => {
         config={normalConfig}
         isUsageOnly={false}
         isPositionLocked={false}
+        onToggleLock={vi.fn()}
       />
     );
     expect(normalContainer.querySelector(".right-panel")).not.toHaveClass("horizontal-dock-layout");

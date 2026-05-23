@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import { vi } from "vitest";
 
 // Mock Tauri API — Tauri は実際のネイティブ環境でしか動かないため
 // テスト環境ではすべての invoke をモックに置き換える

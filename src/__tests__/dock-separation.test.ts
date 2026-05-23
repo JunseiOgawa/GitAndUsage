@@ -65,7 +65,7 @@ function calcNormalDockSize(
   switch (dock) {
     case "left":
     case "right":
-      return { width: Math.floor(controllerWidth * scaleFactor), height };
+      return { width: Math.floor(controllerWidth * scaleFactor), height: monitorH };
     case "top":
     case "bottom":
       return { width: monitorW, height: Math.floor(controllerHeight * scaleFactor) };
@@ -276,13 +276,13 @@ describe("ウィンドウサイズ計算ロジック", () => {
     it("left: 幅=controllerWidth, 高さ=heightRatio×モニター高", () => {
       const size = calcNormalDockSize("left", MW, MH, RATIO, CW, CH);
       expect(size.width).toBe(380);
-      expect(size.height).toBe(288); // 1440 * 0.20
+      expect(size.height).toBe(1440);
     });
 
     it("right: 幅=controllerWidth, 高さ=heightRatio×モニター高", () => {
       const size = calcNormalDockSize("right", MW, MH, RATIO, CW, CH);
       expect(size.width).toBe(380);
-      expect(size.height).toBe(288);
+      expect(size.height).toBe(1440);
     });
 
     it("top: 幅=モニター全幅, 高さ=controllerHeight", () => {
@@ -341,6 +341,7 @@ describe("ウィンドウサイズ計算ロジック", () => {
       expect(coinSize.width).not.toBe(normalSize.width);
       expect(coinSize.width).toBe(2560); // coin bottom: full width
       expect(normalSize.width).toBe(380); // normal right: controller width
+      expect(normalSize.height).toBe(1440);
     });
 
     it("両方の計算は完全に独立している（一方の変更が他方に影響しない）", () => {
@@ -349,9 +350,8 @@ describe("ウィンドウサイズ計算ロジック", () => {
 
       // Same dock direction but computed independently for each mode
       expect(coinLeft.width).toBe(normalLeft.width); // Both use controllerWidth for 'left'
-      expect(coinLeft.height).toBe(normalLeft.height); // Same height calculation
-      // They happen to be equal here, but that's because both use the same formula for 'left'
-      // The key point is they are computed separately with their own dock values
+      expect(coinLeft.height).toBe(288);
+      expect(normalLeft.height).toBe(1440);
     });
   });
 });
