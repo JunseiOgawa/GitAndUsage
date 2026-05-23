@@ -24,36 +24,38 @@ pub fn run() {
             if config.usage_only {
                 let scale_factor = monitor.scale_factor();
                 let dock = config.dock_position.clone().unwrap_or_else(|| "right".to_string());
+                let controller_width = config.controller_width.unwrap_or(380) as f64;
+                let controller_height = config.controller_height.unwrap_or(96) as f64;
                 
                 match dock.as_str() {
                     "left" => {
-                        let width = (380.0 * scale_factor) as u32;
+                        let width = (controller_width * scale_factor) as u32;
                         window.set_size(Size::Physical(PhysicalSize { width, height })).unwrap();
-                        window.set_position(Position::Physical(PhysicalPosition { x: 0, y: 0 })).unwrap();
+                        window.set_position(Position::Physical(PhysicalPosition { x: monitor.position().x, y: monitor.position().y })).unwrap();
                     }
                     "top" => {
                         let width = monitor.size().width;
-                        let bar_height = (96.0 * scale_factor) as u32;
+                        let bar_height = (controller_height * scale_factor) as u32;
                         window.set_size(Size::Physical(PhysicalSize { width, height: bar_height })).unwrap();
-                        window.set_position(Position::Physical(PhysicalPosition { x: 0, y: 0 })).unwrap();
+                        window.set_position(Position::Physical(PhysicalPosition { x: monitor.position().x, y: monitor.position().y })).unwrap();
                     }
                     "bottom" => {
                         let width = monitor.size().width;
-                        let bar_height = (96.0 * scale_factor) as u32;
-                        let y = monitor.size().height - bar_height;
+                        let bar_height = (controller_height * scale_factor) as u32;
+                        let y = monitor.position().y + (monitor.size().height - bar_height) as i32;
                         window.set_size(Size::Physical(PhysicalSize { width, height: bar_height })).unwrap();
-                        window.set_position(Position::Physical(PhysicalPosition { x: 0, y: y as i32 })).unwrap();
+                        window.set_position(Position::Physical(PhysicalPosition { x: monitor.position().x, y })).unwrap();
                     }
                     "floating" => {
-                        let width = (380.0 * scale_factor) as u32;
+                        let width = (controller_width * scale_factor) as u32;
                         window.set_size(Size::Physical(PhysicalSize { width, height })).unwrap();
                         // In floating mode, do not force a position at startup, or center it
                     }
                     _ => { // "right"
-                        let width = (380.0 * scale_factor) as u32;
-                        let x = monitor.size().width - width;
+                        let width = (controller_width * scale_factor) as u32;
+                        let x = monitor.position().x + (monitor.size().width - width) as i32;
                         window.set_size(Size::Physical(PhysicalSize { width, height })).unwrap();
-                        window.set_position(Position::Physical(PhysicalPosition { x: x as i32, y: 0 })).unwrap();
+                        window.set_position(Position::Physical(PhysicalPosition { x, y: monitor.position().y })).unwrap();
                     }
                 }
             } else {
@@ -62,7 +64,7 @@ pub fn run() {
                     .set_size(Size::Physical(PhysicalSize { width, height }))
                     .unwrap();
                 window
-                    .set_position(Position::Physical(PhysicalPosition { x: 0, y: 0 }))
+                    .set_position(Position::Physical(PhysicalPosition { x: monitor.position().x, y: monitor.position().y }))
                     .unwrap();
             }
 
@@ -134,7 +136,9 @@ pub fn run() {
             ai_quota::refresh_ai_quota,
             ai_quota::check_ai_provider_auth,
             commands::exit_app,
-            commands::set_window_size_mode
+            commands::set_window_size_mode,
+            commands::preview_controller_size,
+            commands::move_to_next_monitor
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
