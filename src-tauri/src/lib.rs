@@ -59,13 +59,44 @@ pub fn run() {
                     }
                 }
             } else {
-                let width = monitor.size().width;
-                window
-                    .set_size(Size::Physical(PhysicalSize { width, height }))
-                    .unwrap();
-                window
-                    .set_position(Position::Physical(PhysicalPosition { x: monitor.position().x, y: monitor.position().y }))
-                    .unwrap();
+                let normal_dock = config.normal_dock_position.clone().unwrap_or_else(|| "floating".to_string());
+                let controller_width = config.controller_width.unwrap_or(380) as f64;
+                let controller_height = config.controller_height.unwrap_or(96) as f64;
+                let scale_factor = monitor.scale_factor();
+                let work_pos = monitor.position();
+                let work_size = monitor.size();
+
+                match normal_dock.as_str() {
+                    "left" => {
+                        let width = (controller_width * scale_factor) as u32;
+                        window.set_size(Size::Physical(PhysicalSize { width, height: work_size.height })).unwrap();
+                        window.set_position(Position::Physical(PhysicalPosition { x: work_pos.x, y: work_pos.y })).unwrap();
+                    }
+                    "right" => {
+                        let width = (controller_width * scale_factor) as u32;
+                        let x = work_pos.x + (work_size.width - width) as i32;
+                        window.set_size(Size::Physical(PhysicalSize { width, height: work_size.height })).unwrap();
+                        window.set_position(Position::Physical(PhysicalPosition { x, y: work_pos.y })).unwrap();
+                    }
+                    "top" => {
+                        let width = work_size.width;
+                        let bar_height = (controller_height * scale_factor) as u32;
+                        window.set_size(Size::Physical(PhysicalSize { width, height: bar_height })).unwrap();
+                        window.set_position(Position::Physical(PhysicalPosition { x: work_pos.x, y: work_pos.y })).unwrap();
+                    }
+                    "bottom" => {
+                        let width = work_size.width;
+                        let bar_height = (controller_height * scale_factor) as u32;
+                        let y = work_pos.y + (work_size.height - bar_height) as i32;
+                        window.set_size(Size::Physical(PhysicalSize { width, height: bar_height })).unwrap();
+                        window.set_position(Position::Physical(PhysicalPosition { x: work_pos.x, y })).unwrap();
+                    }
+                    _ => { // "floating"
+                        let width = work_size.width;
+                        window.set_size(Size::Physical(PhysicalSize { width, height })).unwrap();
+                        window.set_position(Position::Physical(PhysicalPosition { x: work_pos.x, y: work_pos.y })).unwrap();
+                    }
+                }
             }
 
             // Force window to stay on top

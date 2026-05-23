@@ -100,11 +100,8 @@ function App() {
     setConfig(updatedConfig);
     setShowGearMenu(false);
     try {
-      // Run save + window resize in parallel — no sequential disk-read on the Rust side
-      await Promise.all([
-        invoke("save_app_config", { config: updatedConfig }),
-        invoke("set_window_size_mode", { settingsOpen: false, usageOnly: nextUsageOnly }),
-      ]);
+      await invoke("save_app_config", { config: updatedConfig });
+      await invoke("set_window_size_mode", { settingsOpen: false, usageOnly: nextUsageOnly });
     } catch (err) {
       console.error("Failed to toggle usage only mode:", err);
       // Revert on failure
@@ -118,10 +115,8 @@ function App() {
     const updatedConfig: AppConfig = { ...config, dockPosition: dock };
     setConfig(updatedConfig);
     try {
-      await Promise.all([
-        invoke("save_app_config", { config: updatedConfig }),
-        invoke("set_window_size_mode", { settingsOpen: false, usageOnly: updatedConfig.usageOnly ?? false }),
-      ]);
+      await invoke("save_app_config", { config: updatedConfig });
+      await invoke("set_window_size_mode", { settingsOpen: false, usageOnly: updatedConfig.usageOnly ?? false });
     } catch (err) {
       console.error("Failed to update coin dock position:", err);
       setConfig(config);
@@ -134,10 +129,8 @@ function App() {
     const updatedConfig: AppConfig = { ...config, normalDockPosition: dock };
     setConfig(updatedConfig);
     try {
-      await Promise.all([
-        invoke("save_app_config", { config: updatedConfig }),
-        invoke("set_window_size_mode", { settingsOpen: false, usageOnly: false }),
-      ]);
+      await invoke("save_app_config", { config: updatedConfig });
+      await invoke("set_window_size_mode", { settingsOpen: false, usageOnly: false });
     } catch (err) {
       console.error("Failed to update normal dock position:", err);
       setConfig(config);

@@ -399,7 +399,7 @@ mod tests {
     ) -> (u32, u32) {
         let height = (monitor_h as f64 * height_ratio) as u32;
         match dock {
-            "left" | "right" => ((ctrl_w * scale) as u32, height),
+            "left" | "right" => ((ctrl_w * scale) as u32, monitor_h),
             "top" | "bottom" => (monitor_w, (ctrl_h * scale) as u32),
             _ => (monitor_w, height), // floating
         }
@@ -421,14 +421,14 @@ mod tests {
     fn test_normal_dock_left_produces_narrow_window() {
         let (w, h) = calc_normal_dock_size("left", 2560, 1440, 0.20, 380.0, 96.0, 1.0);
         assert_eq!(w, 380, "normal left: width must equal controllerWidth");
-        assert_eq!(h, 288, "normal left: height must equal heightRatio * monitor_h");
+        assert_eq!(h, 1440, "normal left: height must fill the monitor work area");
     }
 
     #[test]
     fn test_normal_dock_right_produces_narrow_window() {
         let (w, h) = calc_normal_dock_size("right", 2560, 1440, 0.20, 380.0, 96.0, 1.0);
         assert_eq!(w, 380);
-        assert_eq!(h, 288);
+        assert_eq!(h, 1440);
     }
 
     #[test]

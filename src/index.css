@@ -2639,21 +2639,31 @@ body {
 
 /* ── Left dock: 縦長ウィンドウ、左端配置 ── */
 .app-container.borderless-canvas:not(.usage-only-mode).normal-dock-left {
-  flex-direction: column;
+  flex-direction: row-reverse;
 }
 
-/* GitGraphPanel を縦いっぱいに展開（left/right dock 時） */
+/* 左/右 dock はサイドバーとして全高を使う */
 .app-container.borderless-canvas:not(.usage-only-mode).normal-dock-left .right-panel,
 .app-container.borderless-canvas:not(.usage-only-mode).normal-dock-right .right-panel {
   flex: 0 0 auto;
-  width: 100%;
-  border-left: none;
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  width: auto;
+  height: 100%;
+  min-height: 0;
 }
 
 /* ── Right dock: 縦長ウィンドウ、右端配置 ── */
 .app-container.borderless-canvas:not(.usage-only-mode).normal-dock-right {
-  flex-direction: column;
+  flex-direction: row;
+}
+
+.app-container.borderless-canvas:not(.usage-only-mode).normal-dock-left .right-panel {
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  border-left: none;
+}
+
+.app-container.borderless-canvas:not(.usage-only-mode).normal-dock-right .right-panel {
+  border-left: 1px solid rgba(255, 255, 255, 0.04);
+  border-right: none;
 }
 
 /* ── Top dock: 横帯ウィンドウ、画面上端 ── */
@@ -2715,4 +2725,3 @@ body {
   height: 100%;
   gap: 8px;
 }
-
