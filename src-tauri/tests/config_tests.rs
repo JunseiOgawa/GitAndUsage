@@ -40,15 +40,16 @@ impl TestGuard {
         if config_path.exists() {
             let dir = tempfile::tempdir().expect("Failed to create temp backup directory");
             let b_path = dir.path().join("config.toml.bak");
-            
+
             if config_path.is_dir() {
                 // If it is somehow a directory, move or remove it
                 fs::rename(&config_path, &b_path).ok();
             } else {
                 fs::copy(&config_path, &b_path).expect("Failed to backup config.toml");
-                fs::remove_file(&config_path).expect("Failed to remove original config.toml for test setup");
+                fs::remove_file(&config_path)
+                    .expect("Failed to remove original config.toml for test setup");
             }
-            
+
             backup_dir = Some(dir);
             backup_path = Some(b_path);
         }
@@ -95,13 +96,25 @@ fn test_normal_read_write_flow() {
     let default_config = AppConfig::default();
     assert_eq!(initial_config.height_ratio, default_config.height_ratio);
     assert_eq!(initial_config.repo_path, default_config.repo_path);
-    assert_eq!(initial_config.usage_json_path, default_config.usage_json_path);
-    assert_eq!(initial_config.enabled_providers, default_config.enabled_providers);
+    assert_eq!(
+        initial_config.usage_json_path,
+        default_config.usage_json_path
+    );
+    assert_eq!(
+        initial_config.enabled_providers,
+        default_config.enabled_providers
+    );
     assert_eq!(initial_config.accent_color, default_config.accent_color);
     assert_eq!(initial_config.window_opacity, default_config.window_opacity);
     assert_eq!(initial_config.dock_position, default_config.dock_position);
-    assert_eq!(initial_config.controller_width, default_config.controller_width);
-    assert_eq!(initial_config.controller_height, default_config.controller_height);
+    assert_eq!(
+        initial_config.controller_width,
+        default_config.controller_width
+    );
+    assert_eq!(
+        initial_config.controller_height,
+        default_config.controller_height
+    );
 
     // 3. Modify the configuration and save it
     let mut modified_config = initial_config.clone();
@@ -123,7 +136,10 @@ fn test_normal_read_write_flow() {
     assert_eq!(retrieved_config.repo_path, "/custom/repo/path");
     assert_eq!(retrieved_config.height_ratio, 0.45);
     assert_eq!(retrieved_config.usage_json_path, "./custom_usage.json");
-    assert_eq!(retrieved_config.enabled_providers, vec!["claude".to_string()]);
+    assert_eq!(
+        retrieved_config.enabled_providers,
+        vec!["claude".to_string()]
+    );
     assert!(retrieved_config.usage_only);
     assert_eq!(retrieved_config.accent_color, Some("#ff0000".to_string()));
     assert_eq!(retrieved_config.window_opacity, Some(80));
@@ -150,12 +166,23 @@ fn test_credential_obfuscation_normal() {
     save_app_config(config).expect("Failed to save config with credentials");
 
     // 3. Verify that the saved config.toml has obfuscated keys starting with "enc:"
-    let toml_content = fs::read_to_string(&guard.config_path).expect("Failed to read saved TOML file");
-    let parsed_toml: toml::Value = toml::from_str(&toml_content).expect("Failed to parse saved TOML content");
+    let toml_content =
+        fs::read_to_string(&guard.config_path).expect("Failed to read saved TOML file");
+    let parsed_toml: toml::Value =
+        toml::from_str(&toml_content).expect("Failed to parse saved TOML content");
 
-    let codex_saved = parsed_toml.get("codexToken").and_then(|v| v.as_str()).expect("Missing codexToken");
-    let copilot_saved = parsed_toml.get("copilotPat").and_then(|v| v.as_str()).expect("Missing copilotPat");
-    let claude_saved = parsed_toml.get("claudeKey").and_then(|v| v.as_str()).expect("Missing claudeKey");
+    let codex_saved = parsed_toml
+        .get("codexToken")
+        .and_then(|v| v.as_str())
+        .expect("Missing codexToken");
+    let copilot_saved = parsed_toml
+        .get("copilotPat")
+        .and_then(|v| v.as_str())
+        .expect("Missing copilotPat");
+    let claude_saved = parsed_toml
+        .get("claudeKey")
+        .and_then(|v| v.as_str())
+        .expect("Missing claudeKey");
 
     assert!(codex_saved.starts_with("enc:"));
     assert!(copilot_saved.starts_with("enc:"));
@@ -188,8 +215,14 @@ fn test_credential_obfuscation_edge_cases() {
     let toml_content = fs::read_to_string(&guard.config_path).expect("Failed to read TOML");
     let parsed_toml: toml::Value = toml::from_str(&toml_content).expect("Failed to parse TOML");
 
-    let codex_saved = parsed_toml.get("codexToken").and_then(|v| v.as_str()).expect("Missing codexToken");
-    let copilot_saved = parsed_toml.get("copilotPat").and_then(|v| v.as_str()).expect("Missing copilotPat");
+    let codex_saved = parsed_toml
+        .get("codexToken")
+        .and_then(|v| v.as_str())
+        .expect("Missing codexToken");
+    let copilot_saved = parsed_toml
+        .get("copilotPat")
+        .and_then(|v| v.as_str())
+        .expect("Missing copilotPat");
     assert!(parsed_toml.get("claudeKey").is_none());
 
     // Empty and whitespace should not be converted to enc:... because they are empty/whitespace
@@ -234,8 +267,11 @@ fn test_credential_obfuscation_edge_cases() {
 
     let toml_content = fs::read_to_string(&guard.config_path).expect("Failed to read TOML");
     let parsed_toml: toml::Value = toml::from_str(&toml_content).expect("Failed to parse TOML");
-    let codex_saved = parsed_toml.get("codexToken").and_then(|v| v.as_str()).expect("Missing codexToken");
-    
+    let codex_saved = parsed_toml
+        .get("codexToken")
+        .and_then(|v| v.as_str())
+        .expect("Missing codexToken");
+
     // It should be double-encrypted (meaning it's obfuscated as a whole, starting with enc:)
     assert!(codex_saved.starts_with("enc:"));
     assert_ne!(codex_saved, raw_enc_prefixed);
@@ -247,15 +283,20 @@ fn test_credential_obfuscation_edge_cases() {
     // If someone manually edits the configuration file with a malformed enc: prefix (e.g. odd length hex),
     // get_app_config should return None for that field instead of crashing.
     let mut malformed_toml = AppConfig::default();
-    let toml_str = toml::to_string_pretty(&malformed_toml).expect("Failed to serialize default TOML");
+    let toml_str =
+        toml::to_string_pretty(&malformed_toml).expect("Failed to serialize default TOML");
     let mut parsed: toml::Value = toml::from_str(&toml_str).expect("Failed to parse");
-    
+
     // Set a malformed value (odd length hex string: 3 chars)
     if let Some(table) = parsed.as_table_mut() {
-        table.insert("codexToken".to_string(), toml::Value::String("enc:123".to_string()));
+        table.insert(
+            "codexToken".to_string(),
+            toml::Value::String("enc:123".to_string()),
+        );
     }
     let malformed_toml_str = toml::to_string(&parsed).expect("Failed to serialize malformed TOML");
-    fs::write(&guard.config_path, malformed_toml_str).expect("Failed to write malformed TOML to config path");
+    fs::write(&guard.config_path, malformed_toml_str)
+        .expect("Failed to write malformed TOML to config path");
 
     let loaded = get_app_config().expect("Failed to load malformed config");
     // Since "enc:123" is malformed (odd number of hex digits), it should be deobfuscated to None
@@ -274,8 +315,10 @@ fn test_unexpected_invalid_paths_robustness() {
     assert!(read_result.is_err());
     let err_msg = read_result.err().unwrap();
     assert!(
-        err_msg.contains("Failed to read config file") || err_msg.contains("Failed to write default config"),
-        "Unexpected error message: {}", err_msg
+        err_msg.contains("Failed to read config file")
+            || err_msg.contains("Failed to write default config"),
+        "Unexpected error message: {}",
+        err_msg
     );
 
     // 2. Writing should fail robustly and return a descriptive error
@@ -284,7 +327,8 @@ fn test_unexpected_invalid_paths_robustness() {
     let err_msg = write_result.err().unwrap();
     assert!(
         err_msg.contains("Failed to write config"),
-        "Unexpected error message: {}", err_msg
+        "Unexpected error message: {}",
+        err_msg
     );
 
     // 3. Clean up the blocking directory and verify standard behavior resumes

@@ -63,7 +63,8 @@ fn get_config_path() -> PathBuf {
 
 fn obfuscate(plain: &str) -> String {
     let key = b"GitAndUsageSecureKey123";
-    let xor_bytes: Vec<u8> = plain.bytes()
+    let xor_bytes: Vec<u8> = plain
+        .bytes()
         .enumerate()
         .map(|(i, b)| b ^ key[i % key.len()])
         .collect();
@@ -84,12 +85,13 @@ fn deobfuscate(cipher: &str) -> Option<String> {
         if i + 2 > data.len() {
             return None;
         }
-        let byte_str = &data[i..i+2];
+        let byte_str = &data[i..i + 2];
         let byte = u8::from_str_radix(byte_str, 16).ok()?;
         decoded.push(byte);
     }
     let key = b"GitAndUsageSecureKey123";
-    let plain_bytes: Vec<u8> = decoded.iter()
+    let plain_bytes: Vec<u8> = decoded
+        .iter()
         .enumerate()
         .map(|(i, &b)| b ^ key[i % key.len()])
         .collect();
@@ -102,9 +104,9 @@ pub fn get_app_config() -> Result<AppConfig, String> {
     if config_path.exists() {
         let contents = fs::read_to_string(&config_path)
             .map_err(|e| format!("Failed to read config file: {}", e))?;
-        let mut config: AppConfig = toml::from_str(&contents)
-            .map_err(|e| format!("Failed to parse config file: {}", e))?;
-        
+        let mut config: AppConfig =
+            toml::from_str(&contents).map_err(|e| format!("Failed to parse config file: {}", e))?;
+
         // Transparently deobfuscate credentials
         if let Some(ref t) = config.codex_token {
             config.codex_token = deobfuscate(t);
@@ -115,7 +117,7 @@ pub fn get_app_config() -> Result<AppConfig, String> {
         if let Some(ref t) = config.claude_key {
             config.claude_key = deobfuscate(t);
         }
-        
+
         Ok(config)
     } else {
         let default_config = AppConfig::default();
@@ -149,8 +151,7 @@ pub fn save_app_config(mut config: AppConfig) -> Result<(), String> {
     let config_path = get_config_path();
     let toml_str = toml::to_string_pretty(&config)
         .map_err(|e| format!("Failed to serialize config: {}", e))?;
-    fs::write(&config_path, toml_str)
-        .map_err(|e| format!("Failed to write config: {}", e))?;
+    fs::write(&config_path, toml_str).map_err(|e| format!("Failed to write config: {}", e))?;
     Ok(())
 }
 
@@ -163,7 +164,7 @@ mod tests {
         let plain = "ghp_mySuperSecretGitHubPat12345";
         let encrypted = obfuscate(plain);
         assert!(encrypted.starts_with("enc:"));
-        
+
         let decrypted = deobfuscate(&encrypted).unwrap();
         assert_eq!(plain, decrypted);
 
@@ -231,19 +232,47 @@ mod tests {
         assert!(!json_map.contains_key("normal_dock_position"));
         assert!(!json_map.contains_key("controller_width"));
         assert!(!json_map.contains_key("controller_height"));
- 
+
         // Verify camelCase keys exist and match
-        assert_eq!(json_map.get("repoPath").unwrap().as_str().unwrap(), "/test/repo");
+        assert_eq!(
+            json_map.get("repoPath").unwrap().as_str().unwrap(),
+            "/test/repo"
+        );
         assert_eq!(json_map.get("heightRatio").unwrap().as_f64().unwrap(), 0.15);
-        assert_eq!(json_map.get("usageJsonPath").unwrap().as_str().unwrap(), "/test/usage.json");
-        assert_eq!(json_map.get("codexToken").unwrap().as_str().unwrap(), "token123");
-        assert_eq!(json_map.get("accentColor").unwrap().as_str().unwrap(), "#6366f1");
+        assert_eq!(
+            json_map.get("usageJsonPath").unwrap().as_str().unwrap(),
+            "/test/usage.json"
+        );
+        assert_eq!(
+            json_map.get("codexToken").unwrap().as_str().unwrap(),
+            "token123"
+        );
+        assert_eq!(
+            json_map.get("accentColor").unwrap().as_str().unwrap(),
+            "#6366f1"
+        );
         assert_eq!(json_map.get("windowOpacity").unwrap().as_u64().unwrap(), 90);
         assert_eq!(json_map.get("usageOnly").unwrap().as_bool().unwrap(), true);
-        assert_eq!(json_map.get("dockPosition").unwrap().as_str().unwrap(), "right");
-        assert_eq!(json_map.get("normalDockPosition").unwrap().as_str().unwrap(), "floating");
-        assert_eq!(json_map.get("controllerWidth").unwrap().as_u64().unwrap(), 380);
-        assert_eq!(json_map.get("controllerHeight").unwrap().as_u64().unwrap(), 96);
+        assert_eq!(
+            json_map.get("dockPosition").unwrap().as_str().unwrap(),
+            "right"
+        );
+        assert_eq!(
+            json_map
+                .get("normalDockPosition")
+                .unwrap()
+                .as_str()
+                .unwrap(),
+            "floating"
+        );
+        assert_eq!(
+            json_map.get("controllerWidth").unwrap().as_u64().unwrap(),
+            380
+        );
+        assert_eq!(
+            json_map.get("controllerHeight").unwrap().as_u64().unwrap(),
+            96
+        );
     }
 
     // =========================================================================
@@ -266,8 +295,10 @@ mod tests {
         let original_normal = config.normal_dock_position.clone();
         config.dock_position = Some("left".to_string());
         assert_eq!(config.dock_position.as_deref(), Some("left"));
-        assert_eq!(config.normal_dock_position, original_normal,
-            "normal_dock_position must NOT be modified when coin dock changes");
+        assert_eq!(
+            config.normal_dock_position, original_normal,
+            "normal_dock_position must NOT be modified when coin dock changes"
+        );
     }
 
     /// 通常モードの normal_dock_position を変更しても dock_position は変わらない
@@ -277,8 +308,10 @@ mod tests {
         let original_coin = config.dock_position.clone();
         config.normal_dock_position = Some("top".to_string());
         assert_eq!(config.normal_dock_position.as_deref(), Some("top"));
-        assert_eq!(config.dock_position, original_coin,
-            "dock_position must NOT be modified when normal dock changes");
+        assert_eq!(
+            config.dock_position, original_coin,
+            "dock_position must NOT be modified when normal dock changes"
+        );
     }
 
     /// 両方のDock設定を同時に独立した値に設定できる
@@ -326,10 +359,16 @@ mod tests {
         };
         let toml_str = toml::to_string_pretty(&original).unwrap();
         let restored: AppConfig = toml::from_str(&toml_str).unwrap();
-        assert_eq!(restored.dock_position.as_deref(), Some("left"),
-            "coin dock_position must be preserved after TOML round-trip");
-        assert_eq!(restored.normal_dock_position.as_deref(), Some("bottom"),
-            "normal_dock_position must be preserved after TOML round-trip");
+        assert_eq!(
+            restored.dock_position.as_deref(),
+            Some("left"),
+            "coin dock_position must be preserved after TOML round-trip"
+        );
+        assert_eq!(
+            restored.normal_dock_position.as_deref(),
+            Some("bottom"),
+            "normal_dock_position must be preserved after TOML round-trip"
+        );
         assert_ne!(restored.dock_position, restored.normal_dock_position);
     }
 
@@ -370,8 +409,10 @@ mod tests {
             dockPosition = "right"
         "#;
         let config: AppConfig = toml::from_str(toml_without_normal_dock).unwrap();
-        assert!(config.normal_dock_position.is_none(),
-            "Old config without normal_dock_position must deserialize to None gracefully");
+        assert!(
+            config.normal_dock_position.is_none(),
+            "Old config without normal_dock_position must deserialize to None gracefully"
+        );
         assert_eq!(config.dock_position.as_deref(), Some("right"));
     }
 
@@ -394,20 +435,30 @@ mod tests {
     // =========================================================================
 
     fn calc_normal_dock_size(
-        dock: &str, monitor_w: u32, monitor_h: u32,
-        height_ratio: f64, ctrl_w: f64, ctrl_h: f64, scale: f64,
+        dock: &str,
+        monitor_w: u32,
+        monitor_h: u32,
+        height_ratio: f64,
+        ctrl_w: f64,
+        _ctrl_h: f64,
+        scale: f64,
     ) -> (u32, u32) {
         let height = (monitor_h as f64 * height_ratio) as u32;
         match dock {
             "left" | "right" => ((ctrl_w * scale) as u32, monitor_h),
-            "top" | "bottom" => (monitor_w, (ctrl_h * scale) as u32),
+            "top" | "bottom" => (monitor_w, height),
             _ => (monitor_w, height), // floating
         }
     }
 
     fn calc_coin_dock_size(
-        dock: &str, monitor_w: u32, monitor_h: u32,
-        height_ratio: f64, ctrl_w: f64, ctrl_h: f64, scale: f64,
+        dock: &str,
+        monitor_w: u32,
+        monitor_h: u32,
+        height_ratio: f64,
+        ctrl_w: f64,
+        ctrl_h: f64,
+        scale: f64,
     ) -> (u32, u32) {
         let height = (monitor_h as f64 * height_ratio) as u32;
         match dock {
@@ -421,7 +472,10 @@ mod tests {
     fn test_normal_dock_left_produces_narrow_window() {
         let (w, h) = calc_normal_dock_size("left", 2560, 1440, 0.20, 380.0, 96.0, 1.0);
         assert_eq!(w, 380, "normal left: width must equal controllerWidth");
-        assert_eq!(h, 1440, "normal left: height must fill the monitor work area");
+        assert_eq!(
+            h, 1440,
+            "normal left: height must fill the monitor work area"
+        );
     }
 
     #[test]
@@ -432,17 +486,17 @@ mod tests {
     }
 
     #[test]
-    fn test_normal_dock_top_produces_wide_bar() {
+    fn test_normal_dock_top_produces_full_width_height_ratio_panel() {
         let (w, h) = calc_normal_dock_size("top", 2560, 1440, 0.20, 380.0, 96.0, 1.0);
         assert_eq!(w, 2560, "normal top: width must be full monitor width");
-        assert_eq!(h, 96, "normal top: height must equal controllerHeight");
+        assert_eq!(h, 288, "normal top: height must use heightRatio");
     }
 
     #[test]
-    fn test_normal_dock_bottom_produces_wide_bar() {
+    fn test_normal_dock_bottom_produces_full_width_height_ratio_panel() {
         let (w, h) = calc_normal_dock_size("bottom", 2560, 1440, 0.20, 380.0, 96.0, 1.0);
         assert_eq!(w, 2560);
-        assert_eq!(h, 96);
+        assert_eq!(h, 288);
     }
 
     #[test]
@@ -458,8 +512,10 @@ mod tests {
         let (ratio, cw, ch, scale) = (0.20f64, 380.0f64, 96.0f64, 1.0f64);
         let coin_size = calc_coin_dock_size("bottom", mw, mh, ratio, cw, ch, scale);
         let normal_size = calc_normal_dock_size("right", mw, mh, ratio, cw, ch, scale);
-        assert_ne!(coin_size, normal_size,
-            "Coin and normal mode sizes must be computed independently");
+        assert_ne!(
+            coin_size, normal_size,
+            "Coin and normal mode sizes must be computed independently"
+        );
         assert_eq!(coin_size.0, 2560, "coin bottom must be full width");
         assert_eq!(normal_size.0, 380, "normal right must be controllerWidth");
     }
@@ -472,6 +528,9 @@ mod tests {
         let (w, _) = calc_normal_dock_size("left", mw, mh, ratio, cw, ch, scale);
         assert_eq!(w, 760, "HiDPI scale=2: physical width must double");
         let (coin_w, _) = calc_coin_dock_size("right", mw, mh, ratio, cw, ch, scale);
-        assert_eq!(coin_w, 760, "coin HiDPI scale=2: physical width must double");
+        assert_eq!(
+            coin_w, 760,
+            "coin HiDPI scale=2: physical width must double"
+        );
     }
 }
