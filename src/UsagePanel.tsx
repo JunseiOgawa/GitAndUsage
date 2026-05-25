@@ -130,50 +130,6 @@ export const UsagePanel: React.FC<UsagePanelProps> = ({
     { id: "claude", label: "Claude" }
   ];
 
-  const renderAllQuotas = () => {
-    const activeQuotas = quotas.filter(q => {
-      if (config?.enabledProviders && config.enabledProviders.length > 0) {
-        return config.enabledProviders.includes(q.provider);
-      }
-      return true;
-    });
-
-    return (
-      <div className="usage-all-container" style={{ display: "flex", flex: 1, flexDirection: isHorizontal ? "row" : "column", gap: isHorizontal ? "24px" : "16px", alignItems: "center", justifyContent: "space-around", width: "100%", height: "100%" }}>
-        {activeQuotas.map((q) => {
-          const isCopilot = q.provider.toLowerCase() === "copilot";
-          const dailyWindow = q.windows.find(w => w.id === "5h" || w.id === "primary");
-          const weeklyWindow = q.windows.find(w => w.id === "7d" || w.id === "secondary");
-
-          if (!q.cliInstalled || !q.loggedIn) {
-            return (
-              <div key={q.provider} className="usage-horizontal-card offline" style={{ display: "flex", flexDirection: "column", gap: "2px", opacity: 0.5 }}>
-                <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)" }}>{q.displayName}</span>
-                <span style={{ fontSize: "0.6rem", color: "var(--text-muted)" }}>Offline</span>
-              </div>
-            );
-          }
-
-          return (
-            <div key={q.provider} className="usage-horizontal-card" style={{ display: "flex", flexDirection: "column", gap: "4px", flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--accent-color)" }}>{q.displayName}</span>
-                {q.accountLabel && (
-                  <span style={{ fontSize: "0.58rem", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {q.accountLabel}
-                  </span>
-                )}
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                {renderQuotaBar(t("Daily", { defaultValue: "Daily" }), dailyWindow, isCopilot)}
-                {renderQuotaBar(t("Weekly", { defaultValue: "Weekly" }), weeklyWindow, isCopilot)}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
 
   const renderQuotaBar = (label: string, w?: QuotaWindow, isUnlimited = false) => {
     const percent = isUnlimited ? 100 : w ? getPercentage(w) : undefined;
