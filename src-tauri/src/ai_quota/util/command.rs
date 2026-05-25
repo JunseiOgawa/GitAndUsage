@@ -1,7 +1,7 @@
+use crate::ai_quota::util::redact::redact_secret;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Duration;
-use std::path::{Path, PathBuf};
-use crate::ai_quota::util::redact::redact_secret;
 
 /// Check if a CLI command is installed in the system PATH or candidate directories
 pub fn check_cli_installed(cmd: &str) -> bool {
@@ -107,8 +107,13 @@ pub fn run_command_with_timeout(
         .map_err(|e| redact_secret(&format!("failed to spawn: {}", e)))?;
 
     loop {
-        if let Some(status) = child.try_wait().map_err(|e| redact_secret(&e.to_string()))? {
-            let output = child.wait_with_output().map_err(|e| redact_secret(&e.to_string()))?;
+        if let Some(status) = child
+            .try_wait()
+            .map_err(|e| redact_secret(&e.to_string()))?
+        {
+            let output = child
+                .wait_with_output()
+                .map_err(|e| redact_secret(&e.to_string()))?;
             if status.success() {
                 return Ok(String::from_utf8_lossy(&output.stdout).to_string());
             } else {
@@ -119,7 +124,10 @@ pub fn run_command_with_timeout(
 
         if start.elapsed() > timeout {
             let _ = child.kill();
-            return Err(redact_secret(&format!("command timed out after {}s", timeout.as_secs())));
+            return Err(redact_secret(&format!(
+                "command timed out after {}s",
+                timeout.as_secs()
+            )));
         }
 
         std::thread::sleep(Duration::from_millis(50));

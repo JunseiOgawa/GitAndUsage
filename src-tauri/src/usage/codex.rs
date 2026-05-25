@@ -1,6 +1,6 @@
 use super::types::UsageSnapshot;
 use crate::ai_quota::providers::codex::get_codex_quota;
-use crate::ai_quota::types::{QuotaWindowId};
+use crate::ai_quota::types::QuotaWindowId;
 use chrono::Utc;
 use reqwest::blocking::Client; // Maintained for signature compatibility
 
@@ -17,7 +17,9 @@ pub fn fetch_codex_usage(
         return Ok(UsageSnapshot {
             provider: "codex".to_string(),
             display_name: "Codex".to_string(),
-            account_label: account.clone().unwrap_or_else(|| "Not Configured".to_string()),
+            account_label: account
+                .clone()
+                .unwrap_or_else(|| "Not Configured".to_string()),
             plan_label: plan.clone().unwrap_or_else(|| "Pro Plan".to_string()),
             used: 0.0,
             limit: 0.0,
@@ -27,15 +29,20 @@ pub fn fetch_codex_usage(
         });
     }
 
-    let account_label = quota.account_label
+    let account_label = quota
+        .account_label
         .clone()
         .or_else(|| account.clone())
         .unwrap_or_else(|| "Active Account".to_string());
-        
+
     let plan_label = plan.clone().unwrap_or_else(|| "Pro Plan".to_string());
 
     // Locate primary rate limit window first, then credits, then secondary
-    if let Some(primary) = quota.windows.iter().find(|w| w.id == QuotaWindowId::Primary) {
+    if let Some(primary) = quota
+        .windows
+        .iter()
+        .find(|w| w.id == QuotaWindowId::Primary)
+    {
         let remaining = primary.remaining_percent.unwrap_or(100.0);
         let used = (100.0 - remaining).clamp(0.0, 100.0);
         let limit = 100.0;
@@ -60,7 +67,11 @@ pub fn fetch_codex_usage(
         });
     }
 
-    if let Some(credits) = quota.windows.iter().find(|w| w.id == QuotaWindowId::Credits) {
+    if let Some(credits) = quota
+        .windows
+        .iter()
+        .find(|w| w.id == QuotaWindowId::Credits)
+    {
         let used = credits.remaining_value.unwrap_or(0.0);
         return Ok(UsageSnapshot {
             provider: "codex".to_string(),
@@ -75,7 +86,11 @@ pub fn fetch_codex_usage(
         });
     }
 
-    if let Some(secondary) = quota.windows.iter().find(|w| w.id == QuotaWindowId::Secondary) {
+    if let Some(secondary) = quota
+        .windows
+        .iter()
+        .find(|w| w.id == QuotaWindowId::Secondary)
+    {
         let remaining = secondary.remaining_percent.unwrap_or(100.0);
         let used = (100.0 - remaining).clamp(0.0, 100.0);
         let limit = 100.0;

@@ -1,19 +1,19 @@
-pub mod types;
+pub mod claude;
 pub mod codex;
 pub mod copilot;
-pub mod claude;
 pub mod local_json;
+pub mod types;
 
-use reqwest::blocking::Client;
-use chrono::Utc;
-use std::path::Path;
 use crate::config::get_app_config;
+use chrono::Utc;
+use reqwest::blocking::Client;
+use std::path::Path;
 
-pub use types::UsageSnapshot;
+pub use claude::fetch_claude_usage;
 pub use codex::fetch_codex_usage;
 pub use copilot::fetch_copilot_usage;
-pub use claude::fetch_claude_usage;
 pub use local_json::{load_cached_snapshots, save_snapshots_to_json};
+pub use types::UsageSnapshot;
 
 fn create_client() -> Client {
     Client::builder()
@@ -125,7 +125,7 @@ mod tests {
     fn test_claude_log_parser() {
         let temp_dir = std::env::temp_dir();
         let log_path = temp_dir.join("test_claude_usage.log");
-        
+
         let mut file = fs::File::create(&log_path).unwrap();
         writeln!(file, "[2026-05-21 12:00:00] Sending prompt to Claude...").unwrap();
         writeln!(file, "[2026-05-21 12:00:01] Received response. usage: {{ \"input_tokens\": 1500, \"output_tokens\": 450 }}").unwrap();

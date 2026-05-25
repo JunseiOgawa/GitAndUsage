@@ -160,4 +160,3 @@ pub fn find_existing_file(paths: &[PathBuf], filename: &str) -> Option<PathBuf> 
     }
     None
 }
-

@@ -12,8 +12,8 @@ pub mod providers {
 }
 pub mod cache;
 
-use types::{ProviderQuota, ProviderAuthStatus};
 use std::thread;
+use types::{ProviderAuthStatus, ProviderQuota};
 
 #[tauri::command]
 pub async fn get_all_ai_quotas() -> Result<Vec<ProviderQuota>, String> {
@@ -24,10 +24,18 @@ pub async fn get_all_ai_quotas() -> Result<Vec<ProviderQuota>, String> {
     let handle_copilot = thread::spawn(|| providers::copilot::get_copilot_quota());
     let handle_opencode = thread::spawn(|| providers::opencode::get_opencode_quota());
 
-    let claude = handle_claude.join().map_err(|_| "Claude thread panicked".to_string())?;
-    let codex = handle_codex.join().map_err(|_| "Codex thread panicked".to_string())?;
-    let copilot = handle_copilot.join().map_err(|_| "Copilot thread panicked".to_string())?;
-    let opencode = handle_opencode.join().map_err(|_| "OpenCode thread panicked".to_string())?;
+    let claude = handle_claude
+        .join()
+        .map_err(|_| "Claude thread panicked".to_string())?;
+    let codex = handle_codex
+        .join()
+        .map_err(|_| "Codex thread panicked".to_string())?;
+    let copilot = handle_copilot
+        .join()
+        .map_err(|_| "Copilot thread panicked".to_string())?;
+    let opencode = handle_opencode
+        .join()
+        .map_err(|_| "OpenCode thread panicked".to_string())?;
 
     let quotas = vec![claude, codex, copilot, opencode];
 
@@ -55,7 +63,10 @@ pub async fn refresh_ai_quota(provider: String) -> Result<ProviderQuota, String>
     };
 
     let target_provider = fresh_quota.provider.clone();
-    if let Some(pos) = cached_quotas.iter().position(|q| q.provider == target_provider) {
+    if let Some(pos) = cached_quotas
+        .iter()
+        .position(|q| q.provider == target_provider)
+    {
         cached_quotas[pos] = fresh_quota.clone();
     } else {
         cached_quotas.push(fresh_quota.clone());

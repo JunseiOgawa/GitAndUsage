@@ -1,12 +1,14 @@
+use std::collections::HashMap;
 use std::env;
 use std::fs;
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 use tempfile::TempDir;
 
 use tauri_app_lib::ai_quota::providers::{claude::get_claude_quota, copilot::get_copilot_quota};
-use tauri_app_lib::ai_quota::types::{ProviderId, QuotaSource, QuotaReliability, QuotaWindowId, QuotaUnit};
+use tauri_app_lib::ai_quota::types::{
+    ProviderId, QuotaReliability, QuotaSource, QuotaUnit, QuotaWindowId,
+};
 
 // Thread-safe mutex to run tests sequentially, avoiding environment variable collision
 fn get_test_lock() -> &'static Mutex<()> {
@@ -175,14 +177,20 @@ fn test_claude_no_cli_no_credentials() {
 #[test]
 fn test_claude_credentials_only_valid_email() {
     let ctx = TestContext::new();
-    
+
     // Write a mock .credentials.json in Home Profile directory (.claude)
-    ctx.write_home_file(&[".claude", ".credentials.json"], r#"{"email": "claude_user@example.com"}"#);
+    ctx.write_home_file(
+        &[".claude", ".credentials.json"],
+        r#"{"email": "claude_user@example.com"}"#,
+    );
 
     let quota = get_claude_quota();
     assert_eq!(quota.cli_installed, false);
     assert_eq!(quota.logged_in, true);
-    assert_eq!(quota.account_label, Some("claude_user@example.com".to_string()));
+    assert_eq!(
+        quota.account_label,
+        Some("claude_user@example.com".to_string())
+    );
     assert_eq!(quota.source, QuotaSource::LocalFile);
     assert_eq!(quota.reliability, QuotaReliability::Medium);
 }
@@ -190,13 +198,19 @@ fn test_claude_credentials_only_valid_email() {
 #[test]
 fn test_claude_credentials_only_valid_account() {
     let ctx = TestContext::new();
-    
+
     // Write a mock .credentials.json in config / AppData directory (Claude)
-    ctx.write_config_file(&["Claude", ".credentials.json"], r#"{"account": "claude_account@example.com"}"#);
+    ctx.write_config_file(
+        &["Claude", ".credentials.json"],
+        r#"{"account": "claude_account@example.com"}"#,
+    );
 
     let quota = get_claude_quota();
     assert_eq!(quota.logged_in, true);
-    assert_eq!(quota.account_label, Some("claude_account@example.com".to_string()));
+    assert_eq!(
+        quota.account_label,
+        Some("claude_account@example.com".to_string())
+    );
 }
 
 #[test]
@@ -222,7 +236,10 @@ fn test_claude_credentials_malformed() {
 #[test]
 fn test_claude_quota_parsing_from_local_file_both_windows() {
     let ctx = TestContext::new();
-    ctx.write_home_file(&[".claude", ".credentials.json"], r#"{"email": "claude_user@example.com"}"#);
+    ctx.write_home_file(
+        &[".claude", ".credentials.json"],
+        r#"{"email": "claude_user@example.com"}"#,
+    );
 
     // Mock claude-quota.json inside .ai-usage-monitor
     ctx.write_home_file(
@@ -232,7 +249,7 @@ fn test_claude_quota_parsing_from_local_file_both_windows() {
             "sevenDayRemainingPercent": 40.0,
             "fiveHourResetAt": "2026-05-23T15:00:00Z",
             "sevenDayResetAt": "2026-05-30T10:00:00Z"
-        }"#
+        }"#,
     );
 
     let quota = get_claude_quota();
@@ -259,7 +276,10 @@ fn test_claude_quota_parsing_from_local_file_both_windows() {
 #[test]
 fn test_claude_quota_parsing_from_local_file_only_five_hour() {
     let ctx = TestContext::new();
-    ctx.write_home_file(&[".claude", ".credentials.json"], r#"{"email": "claude_user@example.com"}"#);
+    ctx.write_home_file(
+        &[".claude", ".credentials.json"],
+        r#"{"email": "claude_user@example.com"}"#,
+    );
 
     // Mock quota.json inside ~/.claude/
     ctx.write_home_file(
@@ -267,36 +287,45 @@ fn test_claude_quota_parsing_from_local_file_only_five_hour() {
         r#"{
             "fiveHourRemainingPercent": 92.0,
             "fiveHourResetAt": "2026-05-23T16:00:00Z"
-        }"#
+        }"#,
     );
 
     let quota = get_claude_quota();
     assert_eq!(quota.windows.len(), 1);
     assert_eq!(quota.windows[0].id, QuotaWindowId::Window5h);
     assert_eq!(quota.windows[0].remaining_percent, Some(92.0));
-    assert_eq!(quota.windows[0].reset_at, Some("2026-05-23T16:00:00Z".to_string()));
+    assert_eq!(
+        quota.windows[0].reset_at,
+        Some("2026-05-23T16:00:00Z".to_string())
+    );
 }
 
 #[test]
 fn test_claude_quota_parsing_malformed() {
     let ctx = TestContext::new();
-    ctx.write_home_file(&[".claude", ".credentials.json"], r#"{"email": "claude_user@example.com"}"#);
+    ctx.write_home_file(
+        &[".claude", ".credentials.json"],
+        r#"{"email": "claude_user@example.com"}"#,
+    );
 
     // Mock malformed quota.json
     ctx.write_home_file(
         &[".claude", "quota.json"],
-        r#"{"fiveHourRemainingPercent": "should be a float but is a string"}"#
+        r#"{"fiveHourRemainingPercent": "should be a float but is a string"}"#,
     );
 
     let quota = get_claude_quota();
     assert!(quota.windows.is_empty());
-    assert_eq!(quota.warning, Some("Logged in, quota unavailable".to_string()));
+    assert_eq!(
+        quota.warning,
+        Some("Logged in, quota unavailable".to_string())
+    );
 }
 
 #[test]
 fn test_claude_cli_logged_in() {
     let ctx = TestContext::new();
-    
+
     let windows_content = r#"@echo off
 if "%1"=="auth" if "%2"=="status" (
     echo Logged in as cli_user@example.com
@@ -318,7 +347,10 @@ exit 1
     let quota = get_claude_quota();
     assert_eq!(quota.cli_installed, true);
     assert_eq!(quota.logged_in, true);
-    assert_eq!(quota.account_label, Some("cli_user@example.com".to_string()));
+    assert_eq!(
+        quota.account_label,
+        Some("cli_user@example.com".to_string())
+    );
     assert_eq!(quota.source, QuotaSource::Cli);
     assert_eq!(quota.reliability, QuotaReliability::High);
 }
@@ -326,7 +358,7 @@ exit 1
 #[test]
 fn test_claude_cli_not_logged_in() {
     let ctx = TestContext::new();
-    
+
     let windows_content = r#"@echo off
 if "%1"=="auth" if "%2"=="status" (
     echo Not logged in
@@ -348,14 +380,20 @@ exit 1
     let quota = get_claude_quota();
     assert_eq!(quota.cli_installed, true);
     assert_eq!(quota.logged_in, false);
-    assert_eq!(quota.warning, Some("CLI installed, but login status not confirmed".to_string()));
+    assert_eq!(
+        quota.warning,
+        Some("CLI installed, but login status not confirmed".to_string())
+    );
 }
 
 #[test]
 fn test_claude_cli_failed_with_credentials_fallback() {
     let ctx = TestContext::new();
-    ctx.write_home_file(&[".claude", ".credentials.json"], r#"{"email": "fallback_user@example.com"}"#);
-    
+    ctx.write_home_file(
+        &[".claude", ".credentials.json"],
+        r#"{"email": "fallback_user@example.com"}"#,
+    );
+
     let windows_content = r#"@echo off
 echo Some execution error occurred >&2
 exit /b 5
@@ -371,9 +409,12 @@ exit 5
     let quota = get_claude_quota();
     assert_eq!(quota.cli_installed, true);
     assert_eq!(quota.logged_in, true); // Fallback to credentials
-    assert_eq!(quota.account_label, Some("fallback_user@example.com".to_string()));
+    assert_eq!(
+        quota.account_label,
+        Some("fallback_user@example.com".to_string())
+    );
     assert_eq!(quota.source, QuotaSource::LocalFile);
-    
+
     // Should have warning due to CLI fail
     let warn_msg = quota.warning.expect("Warning should exist");
     println!("DEBUGLOG: Actual warning message: {}", warn_msg);
@@ -447,7 +488,7 @@ fn test_copilot_config_json_valid_token_and_user() {
     let ctx = TestContext::new();
     ctx.write_home_file(
         &[".copilot", "config.json"],
-        r#"{"token": "mock_config_token", "user": "copilot_user"}"#
+        r#"{"token": "mock_config_token", "user": "copilot_user"}"#,
     );
 
     let quota = get_copilot_quota();
@@ -461,7 +502,7 @@ fn test_copilot_config_json_github_token_and_username() {
     let ctx = TestContext::new();
     ctx.write_home_file(
         &[".copilot", "config.json"],
-        r#"{"github_token": "mock_config_token_2", "username": "copilot_username"}"#
+        r#"{"github_token": "mock_config_token_2", "username": "copilot_username"}"#,
     );
 
     let quota = get_copilot_quota();
@@ -492,7 +533,7 @@ fn test_copilot_config_json_malformed() {
 #[test]
 fn test_copilot_cli_only_auth() {
     let ctx = TestContext::new();
-    
+
     let windows_content = r#"@echo off
 if "%1"=="auth" if "%2"=="token" (
     echo mock_cli_token
@@ -534,12 +575,12 @@ exit 1
 #[test]
 fn test_unreadable_status_files_error_handling() {
     let ctx = TestContext::new();
-    
+
     // We make `.credentials.json` a directory instead of a file.
     // In Rust, fs::read_to_string on a directory will fail with an error.
     let path = ctx.mock_home.join(".claude");
     fs::create_dir_all(&path).unwrap();
-    
+
     let cred_dir = path.join(".credentials.json");
     fs::create_dir_all(&cred_dir).unwrap(); // Creates directory blockers
 

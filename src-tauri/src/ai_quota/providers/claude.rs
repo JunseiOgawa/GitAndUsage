@@ -1,8 +1,8 @@
 use crate::ai_quota::types::{
-    ProviderId, ProviderQuota, QuotaSource, QuotaReliability, QuotaWindow, QuotaWindowId, QuotaUnit
+    ProviderId, ProviderQuota, QuotaReliability, QuotaSource, QuotaUnit, QuotaWindow, QuotaWindowId,
 };
 use crate::ai_quota::util::command::{resolve_cli_path, run_command_with_timeout};
-use crate::ai_quota::util::paths::{get_claude_paths, find_existing_file, home_dir};
+use crate::ai_quota::util::paths::{find_existing_file, get_claude_paths, home_dir};
 use crate::ai_quota::util::redact::redact_secret;
 use chrono::Utc;
 use std::fs;
@@ -12,7 +12,7 @@ pub fn get_claude_quota() -> ProviderQuota {
     let cli_path = resolve_cli_path("claude");
     let cli_installed = cli_path.is_some();
     let paths = get_claude_paths();
-    
+
     let mut logged_in = false;
     let mut account_label = None;
     let mut windows = Vec::new();
@@ -53,7 +53,7 @@ pub fn get_claude_quota() -> ProviderQuota {
                     logged_in = true;
                     source = QuotaSource::Cli;
                     reliability = QuotaReliability::High;
-                    
+
                     // Parse email (e.g. "Logged in as user@domain.com")
                     for line in clean_output.lines() {
                         if line.contains("as ") {
@@ -72,7 +72,10 @@ pub fn get_claude_quota() -> ProviderQuota {
             Err(err) => {
                 let clean_err = redact_secret(&err);
                 if credentials_file.is_some() {
-                    warning = Some(format!("CLI status check failed, using local files: {}", clean_err));
+                    warning = Some(format!(
+                        "CLI status check failed, using local files: {}",
+                        clean_err
+                    ));
                 } else {
                     error = Some(clean_err);
                 }
@@ -117,10 +120,20 @@ pub fn get_claude_quota() -> ProviderQuota {
                 if let Ok(content) = fs::read_to_string(&path) {
                     let redacted = redact_secret(&content);
                     if let Ok(json) = serde_json::from_str::<serde_json::Value>(&redacted) {
-                        five_hour_percent = json.get("fiveHourRemainingPercent").and_then(|v| v.as_f64());
-                        seven_day_percent = json.get("sevenDayRemainingPercent").and_then(|v| v.as_f64());
-                        five_hour_reset = json.get("fiveHourResetAt").and_then(|v| v.as_str()).map(|s| s.to_string());
-                        seven_day_reset = json.get("sevenDayResetAt").and_then(|v| v.as_str()).map(|s| s.to_string());
+                        five_hour_percent = json
+                            .get("fiveHourRemainingPercent")
+                            .and_then(|v| v.as_f64());
+                        seven_day_percent = json
+                            .get("sevenDayRemainingPercent")
+                            .and_then(|v| v.as_f64());
+                        five_hour_reset = json
+                            .get("fiveHourResetAt")
+                            .and_then(|v| v.as_str())
+                            .map(|s| s.to_string());
+                        seven_day_reset = json
+                            .get("sevenDayResetAt")
+                            .and_then(|v| v.as_str())
+                            .map(|s| s.to_string());
                         cache_found = true;
                         source = QuotaSource::Statusline;
                         reliability = QuotaReliability::High;

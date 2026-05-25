@@ -1,8 +1,8 @@
 use crate::ai_quota::types::{
-    ProviderId, ProviderQuota, QuotaSource, QuotaReliability, QuotaWindow
+    ProviderId, ProviderQuota, QuotaReliability, QuotaSource, QuotaWindow,
 };
 use crate::ai_quota::util::command::{resolve_cli_path, run_command_with_timeout};
-use crate::ai_quota::util::paths::{get_copilot_paths, find_existing_file};
+use crate::ai_quota::util::paths::{find_existing_file, get_copilot_paths};
 use crate::ai_quota::util::redact::redact_secret;
 use chrono::Utc;
 use std::env;
@@ -24,7 +24,7 @@ impl CopilotQuotaAdapter for NotImplementedAdapter {
 pub fn get_copilot_quota() -> ProviderQuota {
     let copilot_path = resolve_cli_path("copilot");
     let gh_path = resolve_cli_path("gh");
-    
+
     let cli_installed = copilot_path.is_some();
     let gh_installed = gh_path.is_some();
     let paths = get_copilot_paths();
@@ -50,12 +50,17 @@ pub fn get_copilot_quota() -> ProviderQuota {
             let redacted = redact_secret(&content);
             if let Ok(json) = serde_json::from_str::<serde_json::Value>(&redacted) {
                 if token.is_none() {
-                    token = json.get("token")
+                    token = json
+                        .get("token")
                         .or_else(|| json.get("github_token"))
                         .and_then(|v| v.as_str())
                         .map(|s| s.to_string());
                 }
-                if let Some(user) = json.get("user").or_else(|| json.get("username")).and_then(|v| v.as_str()) {
+                if let Some(user) = json
+                    .get("user")
+                    .or_else(|| json.get("username"))
+                    .and_then(|v| v.as_str())
+                {
                     account_label = Some(user.to_string());
                 }
             }
@@ -88,12 +93,19 @@ pub fn get_copilot_quota() -> ProviderQuota {
     if logged_in && account_label.is_none() {
         if let Some(ref path) = gh_path {
             // Query gh auth status to get the user name
-            if let Ok(status_out) = run_command_with_timeout(path, &["auth", "status"], Duration::from_secs(3)) {
+            if let Ok(status_out) =
+                run_command_with_timeout(path, &["auth", "status"], Duration::from_secs(3))
+            {
                 let clean = redact_secret(&status_out);
                 for line in clean.lines() {
                     if line.contains("Logged in to") && line.contains("as") {
                         if let Some(pos) = line.find("as ") {
-                            let user = line[pos + 3..].trim().split_whitespace().next().unwrap_or("").to_string();
+                            let user = line[pos + 3..]
+                                .trim()
+                                .split_whitespace()
+                                .next()
+                                .unwrap_or("")
+                                .to_string();
                             if !user.is_empty() {
                                 account_label = Some(user);
                             }

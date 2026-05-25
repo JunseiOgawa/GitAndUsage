@@ -1,8 +1,8 @@
 use crate::ai_quota::types::{
-    ProviderId, ProviderQuota, QuotaSource, QuotaReliability, QuotaWindow, QuotaWindowId, QuotaUnit
+    ProviderId, ProviderQuota, QuotaReliability, QuotaSource, QuotaUnit, QuotaWindow, QuotaWindowId,
 };
 use crate::ai_quota::util::command::{resolve_cli_path, run_command_with_timeout};
-use crate::ai_quota::util::paths::{get_opencode_paths, find_existing_file};
+use crate::ai_quota::util::paths::{find_existing_file, get_opencode_paths};
 use crate::ai_quota::util::redact::redact_secret;
 use chrono::Utc;
 use std::env;
@@ -26,8 +26,12 @@ pub fn get_opencode_quota() -> ProviderQuota {
     let error: Option<String> = None;
 
     // Check environment variables for OpenCode Go
-    let go_workspace = env::var("OPENCODE_GO_WORKSPACE_ID").ok().filter(|s| !s.trim().is_empty());
-    let go_cookie = env::var("OPENCODE_GO_AUTH_COOKIE").ok().filter(|s| !s.trim().is_empty());
+    let go_workspace = env::var("OPENCODE_GO_WORKSPACE_ID")
+        .ok()
+        .filter(|s| !s.trim().is_empty());
+    let go_cookie = env::var("OPENCODE_GO_AUTH_COOKIE")
+        .ok()
+        .filter(|s| !s.trim().is_empty());
 
     if go_workspace.is_some() || go_cookie.is_some() {
         logged_in = true;
@@ -48,7 +52,11 @@ pub fn get_opencode_quota() -> ProviderQuota {
             if let Ok(content) = fs::read_to_string(path) {
                 let redacted = redact_secret(&content);
                 if let Ok(json) = serde_json::from_str::<serde_json::Value>(&redacted) {
-                    if let Some(user) = json.get("user").or_else(|| json.get("email")).and_then(|v| v.as_str()) {
+                    if let Some(user) = json
+                        .get("user")
+                        .or_else(|| json.get("email"))
+                        .and_then(|v| v.as_str())
+                    {
                         account_label = Some(user.to_string());
                     }
                 }
@@ -114,7 +122,7 @@ pub fn get_opencode_quota() -> ProviderQuota {
     ];
 
     let mut quota_parsed = false;
-    
+
     // Only query quota if logged_in and opencode-quota command exists
     if logged_in {
         if let Some(ref path) = quota_path {
@@ -125,21 +133,34 @@ pub fn get_opencode_quota() -> ProviderQuota {
                         for (id, label) in &sub_providers {
                             if let Some(prov_quota) = json.get(id) {
                                 let mut rem_pct = None;
-                                if let Some(used) = prov_quota.get("used_percent").and_then(|v| v.as_f64()) {
+                                if let Some(used) =
+                                    prov_quota.get("used_percent").and_then(|v| v.as_f64())
+                                {
                                     rem_pct = Some((100.0 - used).clamp(0.0, 100.0));
-                                } else if let Some(rem) = prov_quota.get("remaining_percent").and_then(|v| v.as_f64()) {
+                                } else if let Some(rem) =
+                                    prov_quota.get("remaining_percent").and_then(|v| v.as_f64())
+                                {
                                     rem_pct = Some(rem);
                                 }
 
-                                if rem_pct.is_some() || prov_quota.get("remaining_value").is_some() {
+                                if rem_pct.is_some() || prov_quota.get("remaining_value").is_some()
+                                {
                                     windows.push(QuotaWindow {
                                         id: QuotaWindowId::Unknown,
                                         label: label.to_string(),
                                         remaining_percent: rem_pct,
-                                        remaining_value: prov_quota.get("remaining_value").and_then(|v| v.as_f64()),
-                                        total_value: prov_quota.get("total_value").and_then(|v| v.as_f64()),
+                                        remaining_value: prov_quota
+                                            .get("remaining_value")
+                                            .and_then(|v| v.as_f64()),
+                                        total_value: prov_quota
+                                            .get("total_value")
+                                            .and_then(|v| v.as_f64()),
                                         unit: QuotaUnit::Percent,
-                                        reset_at: prov_quota.get("resets_at").or_else(|| prov_quota.get("reset_at")).and_then(|v| v.as_str()).map(|s| s.to_string()),
+                                        reset_at: prov_quota
+                                            .get("resets_at")
+                                            .or_else(|| prov_quota.get("reset_at"))
+                                            .and_then(|v| v.as_str())
+                                            .map(|s| s.to_string()),
                                     });
                                 }
                             }

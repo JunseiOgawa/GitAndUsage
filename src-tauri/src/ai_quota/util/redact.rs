@@ -44,9 +44,15 @@ mod tests {
         assert_eq!(redact_secret(sk), "My key is [REDACTED]");
 
         let json = r#"{"access_token": "secret_abc123", "normal": 45}"#;
-        assert_eq!(redact_secret(json), r#"{"access_token": "[REDACTED]", "normal": 45}"#);
+        assert_eq!(
+            redact_secret(json),
+            r#"{"access_token": "[REDACTED]", "normal": 45}"#
+        );
 
         let query = "https://example.com/api?api_key=xyz123&other=45";
-        assert_eq!(redact_secret(query), "https://example.com/api?api_key=[REDACTED]&other=45");
+        assert_eq!(
+            redact_secret(query),
+            "https://example.com/api?api_key=[REDACTED]&other=45"
+        );
     }
 }

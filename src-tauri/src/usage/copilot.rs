@@ -1,7 +1,7 @@
-use reqwest::blocking::Client;
-use chrono::Utc;
-use serde::Deserialize;
 use super::types::UsageSnapshot;
+use chrono::Utc;
+use reqwest::blocking::Client;
+use serde::Deserialize;
 
 pub fn fetch_copilot_usage(
     client: &Client,
@@ -110,6 +110,9 @@ pub fn fetch_copilot_usage(
                 last_updated_at: Utc::now().to_rfc3339(),
             });
         }
-        return Err(format!("Copilot User API returned status: {}", response.status()));
+        return Err(format!(
+            "Copilot User API returned status: {}",
+            response.status()
+        ));
     }
 }

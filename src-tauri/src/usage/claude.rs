@@ -1,9 +1,9 @@
-use reqwest::blocking::Client;
+use super::types::UsageSnapshot;
 use chrono::Utc;
+use reqwest::blocking::Client;
 use serde::Deserialize;
 use std::fs;
 use std::path::Path;
-use super::types::UsageSnapshot;
 
 pub fn fetch_claude_usage(
     client: &Client,
@@ -42,7 +42,10 @@ pub fn fetch_claude_usage(
             // Try fetching cost report if organization is present
             if let Some(org_id) = account {
                 if !org_id.is_empty() {
-                    let cost_url = format!("https://api.anthropic.com/v1/organizations/{}/cost_report", org_id);
+                    let cost_url = format!(
+                        "https://api.anthropic.com/v1/organizations/{}/cost_report",
+                        org_id
+                    );
                     let cost_resp = client
                         .get(&cost_url)
                         .header("x-api-key", key_val)
@@ -70,7 +73,9 @@ pub fn fetch_claude_usage(
                                     provider: "claude".to_string(),
                                     display_name: "Claude".to_string(),
                                     account_label: org_id.clone(),
-                                    plan_label: plan.clone().unwrap_or_else(|| "Pro Plan".to_string()),
+                                    plan_label: plan
+                                        .clone()
+                                        .unwrap_or_else(|| "Pro Plan".to_string()),
                                     used: cost,
                                     limit,
                                     unit: "credits".to_string(),
@@ -95,13 +100,16 @@ pub fn fetch_claude_usage(
                 last_updated_at: Utc::now().to_rfc3339(),
             });
         }
-        return Err(format!("Anthropic API returned status: {}", response.status()));
+        return Err(format!(
+            "Anthropic API returned status: {}",
+            response.status()
+        ));
     } else {
         // Treat input as a Log File Path (Premium Dynamic Log Parser)
         let path = Path::new(key_val);
         if path.exists() {
-            let contents = fs::read_to_string(path)
-                .map_err(|e| format!("Failed to read log file: {}", e))?;
+            let contents =
+                fs::read_to_string(path).map_err(|e| format!("Failed to read log file: {}", e))?;
 
             let mut total_tokens = 0.0;
             for line in contents.lines() {
@@ -119,10 +127,15 @@ pub fn fetch_claude_usage(
                         }
                     } else {
                         // Generic word parser scanning for number keywords
-                        for word in line.split(|c: char| !c.is_ascii_alphanumeric() && c != '.' && c != '_') {
+                        for word in
+                            line.split(|c: char| !c.is_ascii_alphanumeric() && c != '.' && c != '_')
+                        {
                             if let Ok(val) = word.parse::<f64>() {
                                 if val > 0.0 && val < 1000000.0 {
-                                    if line.contains("input") || line.contains("output") || line.contains("prompt") {
+                                    if line.contains("input")
+                                        || line.contains("output")
+                                        || line.contains("prompt")
+                                    {
                                         total_tokens += val;
                                     }
                                 }

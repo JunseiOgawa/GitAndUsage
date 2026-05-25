@@ -1,6 +1,6 @@
+use super::types::UsageSnapshot;
 use std::fs;
 use std::path::Path;
-use super::types::UsageSnapshot;
 
 pub fn load_cached_snapshots(path: &Path) -> Vec<UsageSnapshot> {
     if path.exists() {
@@ -22,7 +22,8 @@ pub fn save_snapshots_to_json(path: &Path, snapshots: &[UsageSnapshot]) -> Resul
     }
 
     if let Ok(serialized) = serde_json::to_string_pretty(snapshots) {
-        fs::write(path, serialized).map_err(|e| format!("Failed to write snapshots to JSON: {}", e))?;
+        fs::write(path, serialized)
+            .map_err(|e| format!("Failed to write snapshots to JSON: {}", e))?;
     }
     Ok(())
 }

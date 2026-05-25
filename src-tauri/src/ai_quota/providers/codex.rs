@@ -1,10 +1,10 @@
 use crate::ai_quota::types::{
-    ProviderId, ProviderQuota, QuotaSource, QuotaReliability, QuotaWindow, QuotaWindowId, QuotaUnit
+    ProviderId, ProviderQuota, QuotaReliability, QuotaSource, QuotaUnit, QuotaWindow, QuotaWindowId,
 };
 use crate::ai_quota::util::command::resolve_cli_path;
-use crate::ai_quota::util::paths::{get_codex_paths, find_existing_file};
+use crate::ai_quota::util::paths::{find_existing_file, get_codex_paths};
 use crate::ai_quota::util::redact::redact_secret;
-use chrono::{Utc, TimeZone};
+use chrono::{TimeZone, Utc};
 use std::fs;
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Command, Stdio};
@@ -133,7 +133,9 @@ pub fn get_codex_quota() -> ProviderQuota {
                 let timeout = Duration::from_millis(1500);
 
                 while start_time.elapsed() < timeout {
-                    let remaining = timeout.checked_sub(start_time.elapsed()).unwrap_or(Duration::ZERO);
+                    let remaining = timeout
+                        .checked_sub(start_time.elapsed())
+                        .unwrap_or(Duration::ZERO);
                     match rx.recv_timeout(remaining) {
                         Ok(line) => {
                             if let Ok(json) = serde_json::from_str::<serde_json::Value>(&line) {
@@ -156,37 +158,55 @@ pub fn get_codex_quota() -> ProviderQuota {
                     let timeout = Duration::from_millis(1500);
 
                     while start_time.elapsed() < timeout {
-                        let remaining = timeout.checked_sub(start_time.elapsed()).unwrap_or(Duration::ZERO);
+                        let remaining = timeout
+                            .checked_sub(start_time.elapsed())
+                            .unwrap_or(Duration::ZERO);
                         match rx.recv_timeout(remaining) {
                             Ok(line) => {
                                 if let Ok(json) = serde_json::from_str::<serde_json::Value>(&line) {
                                     if json.get("id").and_then(|id| id.as_i64()) == Some(2) {
-                                        let rate_limits_opt = json.get("rateLimits")
-                                            .or_else(|| json.get("result").and_then(|r| r.get("rateLimits")))
+                                        let rate_limits_opt = json
+                                            .get("rateLimits")
+                                            .or_else(|| {
+                                                json.get("result").and_then(|r| r.get("rateLimits"))
+                                            })
                                             .or_else(|| json.get("result"));
 
                                         if let Some(limits) = rate_limits_opt {
                                             if let Some(primary) = limits.get("primary") {
-                                                if let Some(used) = primary.get("usedPercent").and_then(|v| v.as_f64()) {
+                                                if let Some(used) = primary
+                                                    .get("usedPercent")
+                                                    .and_then(|v| v.as_f64())
+                                                {
                                                     primary_used_percent = Some(used);
                                                     rate_limits_found = true;
                                                 }
-                                                if let Some(reset) = primary.get("resetsAt").and_then(|v| v.as_i64()) {
+                                                if let Some(reset) =
+                                                    primary.get("resetsAt").and_then(|v| v.as_i64())
+                                                {
                                                     let dt = Utc.timestamp_opt(reset, 0).single();
                                                     primary_reset_at = dt.map(|d| d.to_rfc3339());
                                                 }
                                             }
                                             if let Some(secondary) = limits.get("secondary") {
-                                                if let Some(used) = secondary.get("usedPercent").and_then(|v| v.as_f64()) {
+                                                if let Some(used) = secondary
+                                                    .get("usedPercent")
+                                                    .and_then(|v| v.as_f64())
+                                                {
                                                     secondary_used_percent = Some(used);
                                                     rate_limits_found = true;
                                                 }
-                                                if let Some(reset) = secondary.get("resetsAt").and_then(|v| v.as_i64()) {
+                                                if let Some(reset) = secondary
+                                                    .get("resetsAt")
+                                                    .and_then(|v| v.as_i64())
+                                                {
                                                     let dt = Utc.timestamp_opt(reset, 0).single();
                                                     secondary_reset_at = dt.map(|d| d.to_rfc3339());
                                                 }
                                             }
-                                            if let Some(credits) = limits.get("credits").and_then(|v| v.as_f64()) {
+                                            if let Some(credits) =
+                                                limits.get("credits").and_then(|v| v.as_f64())
+                                            {
                                                 credit_balance = Some(credits);
                                             }
                                         }
@@ -250,7 +270,8 @@ pub fn get_codex_quota() -> ProviderQuota {
         if logged_in {
             warning = Some("Codex logged in, quota unavailable via app-server".to_string());
         } else {
-            warning = Some("Codex CLI is installed but not logged in or cannot fetch quota".to_string());
+            warning =
+                Some("Codex CLI is installed but not logged in or cannot fetch quota".to_string());
         }
     }
 
