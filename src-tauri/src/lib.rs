@@ -1,10 +1,49 @@
 use tauri::{Manager, PhysicalPosition, PhysicalSize, Position, Size};
 
+pub mod ai_quota;
+pub mod commands;
 pub mod config;
 pub mod git;
 pub mod usage;
-pub mod ai_quota;
-pub mod commands;
+
+#[cfg(windows)]
+fn get_work_area(monitor: &tauri::Monitor) -> (PhysicalPosition<i32>, PhysicalSize<u32>) {
+    use windows::Win32::Foundation::POINT;
+    use windows::Win32::Graphics::Gdi::{
+        GetMonitorInfoW, MonitorFromPoint, MONITORINFO, MONITOR_DEFAULTTONEAREST,
+    };
+
+    unsafe {
+        let pt = POINT {
+            x: monitor.position().x,
+            y: monitor.position().y,
+        };
+        let hmonitor = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+        let mut info = MONITORINFO {
+            cbSize: std::mem::size_of::<MONITORINFO>() as u32,
+            ..Default::default()
+        };
+        if GetMonitorInfoW(hmonitor, &mut info).as_bool() {
+            return (
+                PhysicalPosition {
+                    x: info.rcWork.left,
+                    y: info.rcWork.top,
+                },
+                PhysicalSize {
+                    width: (info.rcWork.right - info.rcWork.left) as u32,
+                    height: (info.rcWork.bottom - info.rcWork.top) as u32,
+                },
+            );
+        }
+    }
+
+    (monitor.position().clone(), monitor.size().clone())
+}
+
+#[cfg(not(windows))]
+fn get_work_area(monitor: &tauri::Monitor) -> (PhysicalPosition<i32>, PhysicalSize<u32>) {
+    (monitor.position().clone(), monitor.size().clone())
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -13,88 +52,132 @@ pub fn run() {
         .setup(|app| {
             let window = app.get_webview_window("main").unwrap();
             let monitor = window.primary_monitor().unwrap().unwrap();
+            let (work_pos, work_size) = get_work_area(&monitor);
 
             // Load config or fall back to default
             let config = config::get_app_config().unwrap_or_default();
             let height_ratio = config.height_ratio;
 
-            let height = (monitor.size().height as f64 * height_ratio) as u32;
+            let height = (work_size.height as f64 * height_ratio) as u32;
 
             // Apply sizing and positioning based on usage_only configuration and dock position
             if config.usage_only {
                 let scale_factor = monitor.scale_factor();
-                let dock = config.dock_position.clone().unwrap_or_else(|| "right".to_string());
+                let dock = config
+                    .dock_position
+                    .clone()
+                    .unwrap_or_else(|| "right".to_string());
                 let controller_width = config.controller_width.unwrap_or(380) as f64;
                 let controller_height = config.controller_height.unwrap_or(96) as f64;
-                
+
                 match dock.as_str() {
                     "left" => {
                         let width = (controller_width * scale_factor) as u32;
-                        window.set_size(Size::Physical(PhysicalSize { width, height })).unwrap();
-                        window.set_position(Position::Physical(PhysicalPosition { x: monitor.position().x, y: monitor.position().y })).unwrap();
-                    }
-                    "top" => {
-                        let width = monitor.size().width;
-                        let bar_height = (controller_height * scale_factor) as u32;
-                        window.set_size(Size::Physical(PhysicalSize { width, height: bar_height })).unwrap();
-                        window.set_position(Position::Physical(PhysicalPosition { x: monitor.position().x, y: monitor.position().y })).unwrap();
-                    }
-                    "bottom" => {
-                        let width = monitor.size().width;
-                        let bar_height = (controller_height * scale_factor) as u32;
-                        let y = monitor.position().y + (monitor.size().height - bar_height) as i32;
-                        window.set_size(Size::Physical(PhysicalSize { width, height: bar_height })).unwrap();
-                        window.set_position(Position::Physical(PhysicalPosition { x: monitor.position().x, y })).unwrap();
-                    }
-                    "floating" => {
-                        let width = (controller_width * scale_factor) as u32;
-                        window.set_size(Size::Physical(PhysicalSize { width, height })).unwrap();
-                        // In floating mode, do not force a position at startup, or center it
-                    }
-                    _ => { // "right"
-                        let width = (controller_width * scale_factor) as u32;
-                        let x = monitor.position().x + (monitor.size().width - width) as i32;
-                        window.set_size(Size::Physical(PhysicalSize { width, height })).unwrap();
-                        window.set_position(Position::Physical(PhysicalPosition { x, y: monitor.position().y })).unwrap();
-                    }
-                }
-            } else {
-                let normal_dock = config.normal_dock_position.clone().unwrap_or_else(|| "floating".to_string());
-                let controller_width = config.controller_width.unwrap_or(380) as f64;
-                let controller_height = config.controller_height.unwrap_or(96) as f64;
-                let scale_factor = monitor.scale_factor();
-                let work_pos = monitor.position();
-                let work_size = monitor.size();
-
-                match normal_dock.as_str() {
-                    "left" => {
-                        let width = (controller_width * scale_factor) as u32;
-                        window.set_size(Size::Physical(PhysicalSize { width, height: work_size.height })).unwrap();
-                        window.set_position(Position::Physical(PhysicalPosition { x: work_pos.x, y: work_pos.y })).unwrap();
-                    }
-                    "right" => {
-                        let width = (controller_width * scale_factor) as u32;
-                        let x = work_pos.x + (work_size.width - width) as i32;
-                        window.set_size(Size::Physical(PhysicalSize { width, height: work_size.height })).unwrap();
-                        window.set_position(Position::Physical(PhysicalPosition { x, y: work_pos.y })).unwrap();
+                        window
+                            .set_size(Size::Physical(PhysicalSize { width, height }))
+                            .unwrap();
+                        window.set_position(Position::Physical(work_pos)).unwrap();
                     }
                     "top" => {
                         let width = work_size.width;
                         let bar_height = (controller_height * scale_factor) as u32;
-                        window.set_size(Size::Physical(PhysicalSize { width, height: bar_height })).unwrap();
-                        window.set_position(Position::Physical(PhysicalPosition { x: work_pos.x, y: work_pos.y })).unwrap();
+                        window
+                            .set_size(Size::Physical(PhysicalSize {
+                                width,
+                                height: bar_height,
+                            }))
+                            .unwrap();
+                        window.set_position(Position::Physical(work_pos)).unwrap();
                     }
                     "bottom" => {
                         let width = work_size.width;
                         let bar_height = (controller_height * scale_factor) as u32;
                         let y = work_pos.y + (work_size.height - bar_height) as i32;
-                        window.set_size(Size::Physical(PhysicalSize { width, height: bar_height })).unwrap();
-                        window.set_position(Position::Physical(PhysicalPosition { x: work_pos.x, y })).unwrap();
+                        window
+                            .set_size(Size::Physical(PhysicalSize {
+                                width,
+                                height: bar_height,
+                            }))
+                            .unwrap();
+                        window
+                            .set_position(Position::Physical(PhysicalPosition { x: work_pos.x, y }))
+                            .unwrap();
                     }
-                    _ => { // "floating"
+                    "floating" => {
+                        let width = (controller_width * scale_factor) as u32;
+                        window
+                            .set_size(Size::Physical(PhysicalSize { width, height }))
+                            .unwrap();
+                        // In floating mode, do not force a position at startup, or center it
+                    }
+                    _ => {
+                        // "right"
+                        let width = (controller_width * scale_factor) as u32;
+                        let x = work_pos.x + (work_size.width - width) as i32;
+                        window
+                            .set_size(Size::Physical(PhysicalSize { width, height }))
+                            .unwrap();
+                        window
+                            .set_position(Position::Physical(PhysicalPosition { x, y: work_pos.y }))
+                            .unwrap();
+                    }
+                }
+            } else {
+                let normal_dock = config
+                    .normal_dock_position
+                    .clone()
+                    .unwrap_or_else(|| "floating".to_string());
+                let controller_width = config.controller_width.unwrap_or(380) as f64;
+                let scale_factor = monitor.scale_factor();
+
+                match normal_dock.as_str() {
+                    "left" => {
+                        let width = (controller_width * scale_factor) as u32;
+                        window
+                            .set_size(Size::Physical(PhysicalSize {
+                                width,
+                                height: work_size.height,
+                            }))
+                            .unwrap();
+                        window.set_position(Position::Physical(work_pos)).unwrap();
+                    }
+                    "right" => {
+                        let width = (controller_width * scale_factor) as u32;
+                        let x = work_pos.x + (work_size.width - width) as i32;
+                        window
+                            .set_size(Size::Physical(PhysicalSize {
+                                width,
+                                height: work_size.height,
+                            }))
+                            .unwrap();
+                        window
+                            .set_position(Position::Physical(PhysicalPosition { x, y: work_pos.y }))
+                            .unwrap();
+                    }
+                    "top" => {
                         let width = work_size.width;
-                        window.set_size(Size::Physical(PhysicalSize { width, height })).unwrap();
-                        window.set_position(Position::Physical(PhysicalPosition { x: work_pos.x, y: work_pos.y })).unwrap();
+                        window
+                            .set_size(Size::Physical(PhysicalSize { width, height }))
+                            .unwrap();
+                        window.set_position(Position::Physical(work_pos)).unwrap();
+                    }
+                    "bottom" => {
+                        let width = work_size.width;
+                        let y = work_pos.y + (work_size.height - height) as i32;
+                        window
+                            .set_size(Size::Physical(PhysicalSize { width, height }))
+                            .unwrap();
+                        window
+                            .set_position(Position::Physical(PhysicalPosition { x: work_pos.x, y }))
+                            .unwrap();
+                    }
+                    _ => {
+                        // "floating"
+                        let width = work_size.width;
+                        window
+                            .set_size(Size::Physical(PhysicalSize { width, height }))
+                            .unwrap();
+                        window.set_position(Position::Physical(work_pos)).unwrap();
                     }
                 }
             }
@@ -104,7 +187,8 @@ pub fn run() {
 
             // Build System Tray Menu
             let quit_i = tauri::menu::MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-            let show_i = tauri::menu::MenuItem::with_id(app, "show", "Show App", true, None::<&str>)?;
+            let show_i =
+                tauri::menu::MenuItem::with_id(app, "show", "Show App", true, None::<&str>)?;
             let menu = tauri::menu::MenuBuilder::new(app)
                 .item(&show_i)
                 .item(&quit_i)
@@ -118,19 +202,17 @@ pub fn run() {
                 .icon(icon)
                 .menu(&menu)
                 .show_menu_on_left_click(false)
-                .on_menu_event(|app, event| {
-                    match event.id.0.as_str() {
-                        "quit" => {
-                            app.exit(0);
-                        }
-                        "show" => {
-                            if let Some(window) = app.get_webview_window("main") {
-                                window.show().unwrap();
-                                window.set_focus().unwrap();
-                            }
-                        }
-                        _ => {}
+                .on_menu_event(|app, event| match event.id.0.as_str() {
+                    "quit" => {
+                        app.exit(0);
                     }
+                    "show" => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            window.show().unwrap();
+                            window.set_focus().unwrap();
+                        }
+                    }
+                    _ => {}
                 })
                 .on_tray_icon_event(|tray, event| {
                     if let Some(window) = tray.app_handle().get_webview_window("main") {

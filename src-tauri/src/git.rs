@@ -89,9 +89,7 @@ pub fn get_git_status(repo_path: String) -> Result<GitStatus, String> {
         .output();
 
     let toplevel = match toplevel_output {
-        Ok(out) if out.status.success() => {
-            String::from_utf8_lossy(&out.stdout).trim().to_string()
-        }
+        Ok(out) if out.status.success() => String::from_utf8_lossy(&out.stdout).trim().to_string(),
         _ => {
             // Safe fallback if not a git repository
             return Ok(GitStatus {
@@ -124,9 +122,7 @@ pub fn get_git_status(repo_path: String) -> Result<GitStatus, String> {
         .output();
 
     let current_branch = match branch_output {
-        Ok(out) if out.status.success() => {
-            String::from_utf8_lossy(&out.stdout).trim().to_string()
-        }
+        Ok(out) if out.status.success() => String::from_utf8_lossy(&out.stdout).trim().to_string(),
         _ => "".to_string(),
     };
 
@@ -137,9 +133,7 @@ pub fn get_git_status(repo_path: String) -> Result<GitStatus, String> {
         .output();
 
     let upstream = match upstream_output {
-        Ok(out) if out.status.success() => {
-            String::from_utf8_lossy(&out.stdout).trim().to_string()
-        }
+        Ok(out) if out.status.success() => String::from_utf8_lossy(&out.stdout).trim().to_string(),
         _ => "".to_string(),
     };
 
@@ -228,9 +222,7 @@ pub fn get_git_status(repo_path: String) -> Result<GitStatus, String> {
         .output();
 
     let commit_graph = match log_output {
-        Ok(out) if out.status.success() => {
-            String::from_utf8_lossy(&out.stdout).to_string()
-        }
+        Ok(out) if out.status.success() => String::from_utf8_lossy(&out.stdout).to_string(),
         _ => "".to_string(),
     };
 
@@ -277,7 +269,10 @@ pub fn get_git_status(repo_path: String) -> Result<GitStatus, String> {
 #[tauri::command]
 pub fn get_commit_log(repo_path: String) -> Result<Vec<CommitInfo>, String> {
     let sep = "\x1f"; // Unit Separator — won't appear in commit messages
-    let format = format!("%H{sep}%h{sep}%an{sep}%ae{sep}%aI{sep}%ar{sep}%s{sep}%D{sep}%P", sep = sep);
+    let format = format!(
+        "%H{sep}%h{sep}%an{sep}%ae{sep}%aI{sep}%ar{sep}%s{sep}%D{sep}%P",
+        sep = sep
+    );
 
     let format_arg = format!("--format={}", format);
     let output = Command::new("git")
@@ -327,7 +322,10 @@ pub fn get_commit_log(repo_path: String) -> Result<Vec<CommitInfo>, String> {
             // Extract the "HEAD -> branch" part cleanly
             if let Some(pos) = refs_raw.find("HEAD ->") {
                 let after = refs_raw[pos..].trim();
-                final_refs.insert(0, after.split(',').next().unwrap_or("HEAD").trim().to_string());
+                final_refs.insert(
+                    0,
+                    after.split(',').next().unwrap_or("HEAD").trim().to_string(),
+                );
             } else {
                 final_refs.insert(0, "HEAD".to_string());
             }
@@ -402,7 +400,10 @@ pub fn get_commit_details(repo_path: String, commit_hash: String) -> Result<Comm
     // 1. Get commit metadata via git show
     // We use a custom delimiter to safely extract the commit subject and body.
     let sep = "\x1f";
-    let format = format!("%H{sep}%h{sep}%an{sep}%ae{sep}%aI{sep}%ar{sep}%s{sep}%b", sep = sep);
+    let format = format!(
+        "%H{sep}%h{sep}%an{sep}%ae{sep}%aI{sep}%ar{sep}%s{sep}%b",
+        sep = sep
+    );
     let format_arg = format!("--format={}", format);
     let output_meta = Command::new("git")
         .args(["show", &format_arg, "--no-patch", &commit_hash])
@@ -411,7 +412,9 @@ pub fn get_commit_details(repo_path: String, commit_hash: String) -> Result<Comm
         .map_err(|e| e.to_string())?;
 
     if !output_meta.status.success() {
-        let err = String::from_utf8_lossy(&output_meta.stderr).trim().to_string();
+        let err = String::from_utf8_lossy(&output_meta.stderr)
+            .trim()
+            .to_string();
         return Err(err);
     }
 
@@ -428,11 +431,21 @@ pub fn get_commit_details(repo_path: String, commit_hash: String) -> Result<Comm
     let date = parts[4].to_string();
     let relative_date = parts[5].to_string();
     let subject = parts[6].to_string();
-    let body = if parts.len() > 7 { parts[7].trim().to_string() } else { "".to_string() };
+    let body = if parts.len() > 7 {
+        parts[7].trim().to_string()
+    } else {
+        "".to_string()
+    };
 
     // 2. Get changed files via git diff-tree
     let output_files = Command::new("git")
-        .args(["diff-tree", "--no-commit-id", "--name-status", "-r", &commit_hash])
+        .args([
+            "diff-tree",
+            "--no-commit-id",
+            "--name-status",
+            "-r",
+            &commit_hash,
+        ])
         .current_dir(&repo_path)
         .output()
         .map_err(|e| e.to_string())?;
@@ -462,4 +475,3 @@ pub fn get_commit_details(repo_path: String, commit_hash: String) -> Result<Comm
         files,
     })
 }
-

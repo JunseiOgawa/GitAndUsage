@@ -58,7 +58,7 @@ function calcNormalDockSize(
   monitorH: number,
   heightRatio: number,
   controllerWidth: number,
-  controllerHeight: number,
+  _controllerHeight: number,
   scaleFactor: number = 1.0
 ): { width: number; height: number } {
   const height = Math.floor(monitorH * heightRatio);
@@ -68,7 +68,7 @@ function calcNormalDockSize(
       return { width: Math.floor(controllerWidth * scaleFactor), height: monitorH };
     case "top":
     case "bottom":
-      return { width: monitorW, height: Math.floor(controllerHeight * scaleFactor) };
+      return { width: monitorW, height };
     default: // floating
       return { width: monitorW, height };
   }
@@ -285,16 +285,16 @@ describe("ウィンドウサイズ計算ロジック", () => {
       expect(size.height).toBe(1440);
     });
 
-    it("top: 幅=モニター全幅, 高さ=controllerHeight", () => {
+    it("top: 幅=モニター全幅, 高さ=heightRatio×モニター高", () => {
       const size = calcNormalDockSize("top", MW, MH, RATIO, CW, CH);
       expect(size.width).toBe(2560);
-      expect(size.height).toBe(96);
+      expect(size.height).toBe(288);
     });
 
-    it("bottom: 幅=モニター全幅, 高さ=controllerHeight", () => {
+    it("bottom: 幅=モニター全幅, 高さ=heightRatio×モニター高", () => {
       const size = calcNormalDockSize("bottom", MW, MH, RATIO, CW, CH);
       expect(size.width).toBe(2560);
-      expect(size.height).toBe(96);
+      expect(size.height).toBe(288);
     });
 
     it("floating: 幅=モニター全幅, 高さ=heightRatio×モニター高", () => {
